@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Affichage</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fff;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    {% if ticker %}body { height: calc(100vh - 38px); }{% endif %}
+
+    /* ── Slide ─────────────────────────────────────────── */
+    .slide {
+      position: absolute; top: 0; left: 0; right: 0;
+      bottom: {% if ticker %}38px{% else %}0{% endif %};
+      background: #fff;
+      display: flex; flex-direction: column;
+      opacity: 0; transition: opacity .9s ease;
+      pointer-events: none;
+    }
+    .slide.active { opacity: 1; z-index: 2; }
+    .slide.prev   { opacity: 1; z-index: 1; }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .s-head {
+      display: flex; align-items: center; gap: 1.2vw;
+      padding: .55vw 2vw; flex-shrink: 0;
+      min-height: 10vh; max-height: 15vh;
+    }
+    .s-head img.logo {
+      height: clamp(36px, 6.5vh, 68px); width: auto; flex-shrink: 0;
+    }
+    .s-head .sep {
+      width: 2px; background: rgba(255,255,255,.5);
+      align-self: stretch; margin: .4vh 0; flex-shrink: 0;
+    }
+    .s-head h1 {
+      flex: 1; text-align: center;
+      font-size: clamp(1.1rem, 3.2vw, 2.4rem);
+      font-weight: 800; font-style: italic; color: #fff;
+      animation: slideTitle .55s ease both;
+    }
+    .type-badge {
+      flex-shrink: 0;
+      font-size: clamp(.55rem, .9vw, .78rem); font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: rgba(255,255,255,.75);
+      border: 1.5px solid rgba(255,255,255,.35);
+      border-radius: 4px; padding: .22em .55em; white-space: nowrap;
+    }
+    @keyframes slideTitle {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Body commun ────────────────────────────────────── */
+    .s-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    /* Colonne icônes */
+    .s-icons {
+      flex: 0 0 auto; width: clamp(54px, 5.5vw, 84px);
+      background: #f9f9f9; border-right: 1px solid #eee;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: clamp(6px, 1.2vh, 16px); padding: 1.5vh .4vw;
+    }
+    .s-icons img { width: 100%; max-width: clamp(40px,4vw,64px); height: auto; object-fit: contain; border-radius: 4px; }
+    .s-icons span { font-size: clamp(.45rem,.7vw,.65rem); color: #888; text-align: center; line-height: 1.2; }
+    .icon-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    .s-foot {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .35vh 1.8vw;
+      background: #f5f5f5; border-top: 2px solid #e8e8e8;
+      font-size: clamp(.6rem,1vw,.8rem); color: #999; flex-shrink: 0;
+    }
+    .s-foot .dot {
+      display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%; margin-right: 5px;
+    }
+
+    /* ── Barre de progression ───────────────────────────── */
+    #progress {
+      position: fixed; bottom: {% if ticker %}38px{% else %}0{% endif %};
+      left: 0; height: 3px; width: 0%; z-index: 10;
+    }
+
+    /* ── LAYOUT : annonce ───────────────────────────────── */
+    .s-main {
+      flex: 1; display: flex; padding: 2vh 2vw; gap: 2vw;
+      overflow: hidden; align-items: center;
+    }
+    .s-main.no-img { justify-content: center; }
+    .s-images {
+      flex: 0 0 42%; display: flex; flex-direction: column;
+      gap: 1vh; overflow: hidden; justify-content: center;
+      animation: fadeUp .6s .25s ease both;
+    }
+    .s-images.solo { flex: 0 0 54%; }
+    .s-images img {
+      width: 100%; flex: 1; min-height: 0;
+      object-fit: contain; border-radius: 6px;
+      box-shadow: 0 3px 14px rgba(0,0,0,.18); display: block;
+    }
+    .s-text { flex: 1; display: flex; align-items: center; animation: fadeUp .6s .4s ease both; }
+    .s-text.centered { justify-content: center; text-align: center; }
+    .s-text p {
+      font-size: clamp(.95rem,2.3vw,1.75rem); line-height: 1.8;
+      color: #1f1f1f; white-space: pre-wrap;
+    }
+    .tw-cursor { color: #C0392B; animation: blink .7s step-end infinite; font-style: normal; }
+
+    /* ── LAYOUT : photo ─────────────────────────────────── */
+    .s-photo {
+      flex: 1; position: relative; overflow: hidden;
+      background: #111;
+      animation: fadeUp .5s ease both;
+    }
+    .s-photo img {
+      width: 100%; height: 100%; object-fit: contain; display: block;
+    }
+    .s-photo-caption {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,.65));
+      padding: 2.5vh 2vw 1.5vh;
+      color: #fff; font-size: clamp(.85rem,1.8vw,1.4rem); line-height: 1.5;
+    }
+
+    /* ── LAYOUT : countdown ─────────────────────────────── */
+    .s-countdown {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 3vh; padding: 2vh 3vw;
+      overflow: hidden;
+    }
+    .s-countdown.has-side { flex-direction: row; gap: 3vw; align-items: center; }
+    .cd-timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 1vh; flex-shrink: 0; }
+    .s-countdown.has-side .cd-timer-wrap { flex: 0 0 var(--cd-split, 52%); transition: flex-basis 1s ease; }
+    .cd-timer {
+      display: flex; align-items: flex-end; gap: .8vw;
+      animation: fadeUp .6s .2s ease both;
+    }
+    .cd-unit { display: flex; flex-direction: column; align-items: center; gap: .3vh; }
+    .cd-val {
+      font-size: clamp(2rem,7vw,6rem); font-weight: 900;
+      line-height: 1; color: #1a1a1a; min-width: 1.5ch; text-align: center;
+    }
+    .cd-lbl { font-size: clamp(.55rem,1vw,.85rem); font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: .08em; }
+    .cd-sep { font-size: clamp(1.5rem,5vw,4rem); font-weight: 300; color: #ccc; padding-bottom: .5vh; line-height: 1; }
+    .cd-event {
+      font-size: clamp(.85rem,1.6vw,1.3rem); color: #555;
+      font-style: italic; animation: fadeUp .6s .5s ease both;
+    }
+    .cd-side { flex: 1; display: flex; flex-direction: column; gap: 1.5vh; overflow: hidden; }
+    .cd-side .s-images { flex: 0 0 auto; max-height: 45vh; }
+    .cd-side .s-text   { flex: 0 0 auto; }
+
+    /* ── LAYOUT : stats ─────────────────────────────────── */
+    .s-stats {
+      flex: 1; display: grid; align-items: center; justify-items: center;
+      padding: 3vh 3vw; gap: 2vh 2vw;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .stat-card {
+      display: flex; flex-direction: column; align-items: center;
+      gap: .8vh; padding: 2vh 1.5vw;
+      background: #fafafa; border-radius: 12px;
+      border: 1.5px solid #f0f0f0;
+      width: 100%; animation: fadeUp .5s ease both;
+    }
+    .stat-emoji { font-size: clamp(1.8rem,4vw,3.2rem); line-height: 1; }
+    .stat-val {
+      font-size: clamp(2rem,5.5vw,4.5rem); font-weight: 900; line-height: 1;
+      color: #1a1a1a;
+    }
+    .stat-lbl { font-size: clamp(.65rem,1.1vw,.95rem); color: #888; text-align: center; font-weight: 600; }
+
+    /* ── LAYOUT : video ─────────────────────────────────── */
+    .s-video {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      background: #000; overflow: hidden;
+    }
+    .s-video video { width: 100%; height: 100%; object-fit: contain; }
+
+    /* ── LAYOUT : meteo ─────────────────────────────────── */
+    .s-meteo {
+      flex: 1; display: flex; flex-direction: column;
+      padding: 2.5vh 3vw 1.5vh; gap: 2vh; overflow: hidden;
+      animation: fadeUp .5s .2s ease both;
+    }
+    .meteo-top {
+      display: flex; align-items: center; gap: 3vw; flex-shrink: 0;
+    }
+    .meteo-now {
+      display: flex; align-items: center; gap: 1.5vw; flex-shrink: 0;
+    }
+    .meteo-emoji { font-size: clamp(3rem,8vw,6.5rem); line-height: 1; }
+    .meteo-temps { display: flex; flex-direction: column; }
+    .meteo-temp  { font-size: clamp(2.5rem,7vw,5.5rem); font-weight: 900; color: #1a1a1a; line-height: 1; }
+    .meteo-feels { font-size: clamp(.7rem,1.2vw,1rem); color: #aaa; margin-top: .3vh; }
+    .meteo-info  { display: flex; flex-direction: column; gap: .8vh; }
+    .meteo-desc  { font-size: clamp(1rem,2.2vw,1.7rem); font-weight: 700; color: #333; }
+    .meteo-row   { font-size: clamp(.72rem,1.3vw,1.1rem); color: #666; display: flex; align-items: center; gap: .4rem; }
+    .meteo-row .ico { font-size: 1.2em; }
+    /* Prévisions horaires */
+    .meteo-forecast {
+      display: flex; gap: .8vw; overflow-x: auto; padding-bottom: .3vh;
+      scrollbar-width: none;
+    }
+    .meteo-forecast::-webkit-scrollbar { display: none; }
+    .fc-card {
+      flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+      gap: .5vh; padding: .8vh .9vw;
+      background: #f8f8f8; border-radius: 10px; border: 1.5px solid #eee;
+      min-width: clamp(48px, 6vw, 80px);
+    }
+    .fc-card.now { background: #fff3f3; border-color: #e0b0b0; }
+    .fc-hour  { font-size: clamp(.55rem,.9vw,.78rem); font-weight: 700; color: #aaa; text-transform: uppercase; }
+    .fc-emoji { font-size: clamp(1rem,2vw,1.6rem); line-height: 1; }
+    .fc-temp  { font-size: clamp(.75rem,1.3vw,1.1rem); font-weight: 800; color: #1a1a1a; }
+    .fc-precip{ font-size: clamp(.55rem,.85vw,.72rem); color: #6ab0e8; font-weight: 600; }
+    .meteo-unavail { color: #aaa; font-size: 1.2rem; margin: auto; }
+
+    /* ── Ticker ─────────────────────────────────────────── */
+    #ticker {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 38px;
+      display: flex; align-items: center; z-index: 200;
+      background: #111827;
+      border-top: 2px solid #C0392B;
+    }
+    .ticker-tag {
+      background: #C0392B; color: #fff; height: 100%;
+      display: flex; align-items: center;
+      padding: 0 1rem; flex-shrink: 0;
+      font-size: clamp(.6rem,.9vw,.8rem); font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+    }
+    .ticker-msg {
+      flex: 1; color: #f1f5f9;
+      padding: 0 1.5rem;
+      font-size: clamp(.7rem,1.1vw,.9rem); font-weight: 500;
+      opacity: 1; transition: opacity .5s ease;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ticker-msg.hidden { opacity: 0; }
+    .ticker-clock { color: #64748b; padding-right: .8rem; font-size: .78rem; white-space: nowrap; }
+
+    /* ── Animations communes ────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .empty {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; color: #bbb; font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+{% if slides %}
+
+  {% for slide in slides %}
+  {% set layout = slide.layout or 'annonce' %}
+  <div class="slide{% if loop.first %} active{% endif %}"
+       data-dur="{{ slide.duration }}"
+       data-layout="{{ layout }}"
+       data-color="{{ slide.color }}">
+
+    {# ── Header (commun) ── #}
+    <div class="s-head" style="background:{{ slide.color }}">
+      <img class="logo" src="/static/{{ logo }}" alt="SDIS"
+           onerror="this.style.display='none';this.nextSibling.style.display='none'">
+      <div class="sep"></div>
+      <h1>{{ slide.title }}</h1>
+      <span class="type-badge">{{ slide.type_label }}</span>
+    </div>
+
+    {# ── Body selon layout ── #}
+    <div class="s-body">
+
+      {# Icônes spécialités #}
+      {% if icons %}
+      <div class="s-icons">
+        {% for icon in icons %}
+        <div class="icon-item">
+          <img src="/static/icons/{{ icon.filename }}" alt="{{ icon.label }}">
+          {% if icon.label %}<span>{{ icon.label }}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ─── ANNONCE ─── #}
+      {% if layout == 'annonce' %}
+      <div class="s-main{% if not slide.images %} no-img{% endif %}">
+        {% if slide.images %}
+        <div class="s-images">
+          {% for img in slide.images %}<img src="/static/uploads/{{ img }}" alt="">{% endfor %}
+        </div>
+        {% endif %}
+        <div class="s-text{% if not slide.images %} centered{% endif %}">
+          <p></p>
+          <template>{{ slide.content | safe }}</template>
+        </div>
+      </div>
+
+      {# ─── PHOTO ─── #}
+      {% elif layout == 'photo' %}
+      <div class="s-photo">
+        {% if slide.images %}
+        <img src="/static/uploads/{{ slide.images[0] }}" alt="">
+        {% endif %}
+        {% if slide.content %}
+        <div class="s-photo-caption">{{ slide.content | safe }}</div>
+        {% endif %}
+      </div>
+
+      {# ─── COUNTDOWN ─── #}
+      {% elif layout == 'countdown' %}
+      {% set has_side = slide.images or slide.content %}
+      <div class="s-countdown{% if has_side %} has-side{% endif %}">
+        <div class="cd-timer-wrap">
+          <div class="cd-timer" data-target="{{ slide.extra.get('target','') }}">
+            <div class="cd-unit"><span class="cd-val" data-unit="d">—</span><span class="cd-lbl">jours</span></div>
+            <div class="cd-sep">:</div>
+            <div class="cd-unit"><span class="cd-val" data-unit="h">—</span><span class="cd-lbl">h</span></div>
+            <div class="cd-sep">:</div>
+            <div class="cd-unit"><span class="cd-val" data-unit="m">—</span><span class="cd-lbl">min</span></div>
+            <div class="cd-sep">:</div>
+            <div class="cd-unit"><span class="cd-val" data-unit="s">—</span><span class="cd-lbl">sec</span></div>
+          </div>
+          {% if slide.extra.get('target') %}
+          <div class="cd-event">{{ slide.title }}</div>
+          {% endif %}
+        </div>
+        {% if has_side %}
+        <div class="cd-side">
+          {% if slide.images %}
+          <div class="s-images">
+            {% for img in slide.images %}<img src="/static/uploads/{{ img }}" alt="">{% endfor %}
+          </div>
+          {% endif %}
+          {% if slide.content %}
+          <div class="s-text">
+            <p></p>
+            <template>{{ slide.content | safe }}</template>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      {# ─── STATS ─── #}
+      {% elif layout == 'stats' %}
+      <div class="s-stats">
+        {% for item in slide.extra.get('items', []) %}
+        <div class="stat-card" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+          <div class="stat-emoji">{{ item.get('emoji', '📊') }}</div>
+          <div class="stat-val" data-target="{{ item.get('value', '0') | string | replace(',','') }}">0</div>
+          <div class="stat-lbl">{{ item.get('label', '') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {# ─── VIDEO ─── #}
+      {% elif layout == 'video' %}
+      {% set vf = slide.extra.get('filename', '') %}
+      <div class="s-video">
+        {% if vf %}
+        <video muted playsinline data-slide-id="{{ slide.id }}">
+          <source src="/static/videos/{{ vf }}" type="video/mp4">
+        </video>
+        {% endif %}
+      </div>
+
+      {# ─── METEO ─── #}
+      {% elif layout == 'meteo' %}
+      <div class="s-meteo">
+        {% set w = slide.weather %}
+        {% if w %}
+        <div class="meteo-top">
+          <div class="meteo-now">
+            <div class="meteo-emoji">{{ w.emoji }}</div>
+            <div class="meteo-temps">
+              <div class="meteo-temp">{{ w.temp }}°</div>
+              <div class="meteo-feels">Ressenti {{ w.feels }}°C</div>
+            </div>
+          </div>
+          <div class="meteo-info">
+            <div class="meteo-desc">{{ w.desc }}</div>
+            <div class="meteo-row"><span class="ico">💨</span> {{ w.wind }} km/h {{ w.wind_dir }}</div>
+            <div class="meteo-row"><span class="ico">💧</span> {{ w.humidity }}% humidité</div>
+            {% if slide.extra.get('city') %}
+            <div class="meteo-row"><span class="ico">📍</span> {{ slide.extra.city }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% if w.forecast %}
+        <div class="meteo-forecast">
+          {% for fc in w.forecast %}
+          <div class="fc-card{% if loop.first %} now{% endif %}">
+            <div class="fc-hour">{{ 'Maint.' if loop.first else fc.hour }}</div>
+            <div class="fc-emoji">{{ fc.emoji }}</div>
+            <div class="fc-temp">{{ fc.temp }}°</div>
+            {% if fc.precip > 0 %}<div class="fc-precip">{{ fc.precip }}%</div>{% else %}<div class="fc-precip" style="opacity:0">0%</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="meteo-unavail">Données météo indisponibles</div>
+        {% endif %}
+      </div>
+
+      {% endif %}
+    </div>{# /s-body #}
+
+    {# ── Footer (commun) ── #}
+    <div class="s-foot">
+      <span>
+        <span class="dot" style="background:{{ slide.color }}"></span>
+        {{ ci_name }}
+      </span>
+      <span class="clock"></span>
+    </div>
+
+  </div>
+  {% endfor %}
+
+  <div id="progress" style="background: var(--slide-color, #C0392B)"></div>
+
+  {# ── Ticker ── #}
+  {% if ticker %}
+  <div id="ticker">
+    <div class="ticker-tag">⚡ Infos</div>
+    <div class="ticker-msg" id="ticker-msg">{{ ticker[0].text if ticker }}</div>
+    <div class="ticker-clock" id="ticker-clock"></div>
+  </div>
+  {% endif %}
+
+  <script>
+    const slides   = document.querySelectorAll('.slide');
+    const progress = document.getElementById('progress');
+    let cur = 0, mainTimer, countdownInterval, twGen = 0;
+    const READING_PAUSE = 10000;
+
+    // ── Couleur barre selon slide actif ──────────────────
+    function setProgressColor(color) {
+      progress.style.background = color || '#C0392B';
+    }
+
+    // ── Barre de progression ──────────────────────────────
+    function startProgress(dur, color) {
+      setProgressColor(color);
+      progress.style.transition = 'none';
+      progress.style.width = '0%';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        progress.style.transition = `width ${dur}ms linear`;
+        progress.style.width = '100%';
+      }));
+    }
+
+    // ── Typewriter (annonce / countdown text) ─────────────
+    const PAUSE_TAGS = new Set(['<br>','<br/>','<br />','</p>','</div>','</li>']);
+    const CURSOR_HTML = '<span class="tw-cursor">▍</span>';
+    const PAUSE = { sentence: 430, comma: 160, colon: 100, block: 300 };
+
+    function tokenize(html) {
+      const out = []; let i = 0;
+      while (i < html.length) {
+        if (html[i] === '<') {
+          let t = ''; while (i < html.length && html[i] !== '>') t += html[i++];
+          if (i < html.length) { t += '>'; i++; }
+          out.push({ kind: 'tag', val: t });
+        } else if (html[i] === '&') {
+          let e = ''; const s = i;
+          while (i < html.length && html[i] !== ';' && i-s < 12) e += html[i++];
+          if (i < html.length && html[i] === ';') { e += ';'; i++; }
+          out.push({ kind: 'char', val: e });
+        } else { out.push({ kind: 'char', val: html[i++] }); }
+      }
+      return out;
+    }
+
+    function calcSpeed(tokens, durationMs) {
+      const budget = durationMs * 0.82;
+      let visChars = 0, fixedPauses = 0;
+      tokens.forEach(tok => {
+        if (tok.kind === 'tag') {
+          if (PAUSE_TAGS.has(tok.val.toLowerCase().replace(/\s/g,''))) fixedPauses += PAUSE.block;
+        } else {
+          visChars++;
+          const ch = tok.val;
+          if ('!.?'.includes(ch)) fixedPauses += PAUSE.sentence;
+          else if (',;'.includes(ch)) fixedPauses += PAUSE.comma;
+          else if (ch === ':') fixedPauses += PAUSE.colon;
+        }
+      });
+      if (!visChars) return 49;
+      return Math.max(49, Math.min(144, (budget - fixedPauses) / visChars));
+    }
+
+    function typewriteHTML(el, rawHtml, durationMs) {
+      twGen++;
+      const myGen = twGen;
+      el.innerHTML = ''; el.classList.remove('done');
+      if (!rawHtml?.trim()) { el.classList.add('done'); return; }
+      const tokens = tokenize(rawHtml);
+      const baseMs = calcSpeed(tokens, durationMs);
+      let buf = '', ti = 0;
+      function step() {
+        if (twGen !== myGen) return;
+        if (ti >= tokens.length) { el.innerHTML = buf; el.classList.add('done'); return; }
+        const tok = tokens[ti++];
+        if (tok.kind === 'tag') {
+          buf += tok.val;
+          const tl = tok.val.toLowerCase().replace(/\s/g,'');
+          el.innerHTML = buf + CURSOR_HTML;
+          setTimeout(step, PAUSE_TAGS.has(tl) ? PAUSE.block : 0);
+          return;
+        }
+        buf += tok.val; el.innerHTML = buf + CURSOR_HTML;
+        let d = baseMs;
+        const ch = tok.val;
+        if ('!.?'.includes(ch)) d += PAUSE.sentence;
+        else if (',;'.includes(ch)) d += PAUSE.comma;
+        else if (ch === ':') d += PAUSE.colon;
+        setTimeout(step, d);
+      }
+      setTimeout(step, 480);
+    }
+
+    function startTypewriter(slide, dur) {
+      const p    = slide.querySelector('.s-text p');
+      const tmpl = slide.querySelector('.s-text template');
+      if (p && tmpl) typewriteHTML(p, tmpl.innerHTML, dur);
+    }
+
+    // ── Countdown ─────────────────────────────────────────
+    function parseTarget(raw) {
+      if (!raw) return NaN;
+      // datetime-local donne "YYYY-MM-DDTHH:MM" sans secondes — normalise
+      let s = raw.trim();
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) s += ':00';
+      // Remplace le T par un espace pour maximiser la compat navigateur
+      const t = new Date(s).getTime();
+      if (!isNaN(t)) return t;
+      // Dernier recours : remplacer T par espace
+      return new Date(s.replace('T', ' ')).getTime();
+    }
+
+    function startCountdown(slide) {
+      const timerEl = slide.querySelector('.cd-timer');
+      if (!timerEl) return;
+      const target = parseTarget(timerEl.dataset.target);
+      if (isNaN(target)) {
+        timerEl.querySelectorAll('.cd-val[data-unit]').forEach(el => el.textContent = '00');
+        return;
+      }
+      const countdown = timerEl.closest('.s-countdown');
+      let lastSplitDays = -1;
+
+      function update() {
+        const diff = target - Date.now();
+        const vals = diff <= 0
+          ? { d:0, h:0, m:0, s:0 }
+          : {
+              d: Math.floor(diff / 86400000),
+              h: Math.floor((diff % 86400000) / 3600000),
+              m: Math.floor((diff % 3600000) / 60000),
+              s: Math.floor((diff % 60000) / 1000),
+            };
+        timerEl.querySelectorAll('.cd-val[data-unit]').forEach(el => {
+          el.textContent = String(vals[el.dataset.unit] ?? 0).padStart(2, '0');
+        });
+        // Met à jour la taille uniquement quand le nombre de jours change
+        // 30+ jours → timer occupe 58% ; 0 jours → timer occupe 32%
+        if (countdown?.classList.contains('has-side')) {
+          const days = diff > 0 ? Math.floor(diff / 86400000) : 0;
+          if (days !== lastSplitDays) {
+            lastSplitDays = days;
+            const t = Math.min(days, 30) / 30;
+            countdown.style.setProperty('--cd-split', (32 + t * 26) + '%');
+          }
+        }
+        if (diff <= 0) clearInterval(countdownInterval);
+      }
+      clearInterval(countdownInterval);
+      update();
+      countdownInterval = setInterval(update, 1000);
+    }
+
+    // ── Stats animation ───────────────────────────────────
+    function startStats(slide) {
+      slide.querySelectorAll('.stat-val').forEach(el => {
+        const target = parseInt(el.dataset.target) || 0;
+        const dur = 1800, start = Date.now();
+        function tick() {
+          const p = Math.min((Date.now()-start)/dur, 1);
+          el.textContent = Math.round(target * (1 - Math.pow(1-p, 3)));
+          if (p < 1) requestAnimationFrame(tick);
+          else el.textContent = target;
+        }
+        tick();
+      });
+    }
+
+    // ── Vidéo ─────────────────────────────────────────────
+    function handleVideo(slide) {
+      const v = slide.querySelector('video');
+      if (!v) return;
+      v.currentTime = 0;
+      v.play().catch(() => {});
+      // Ajuste le timer sur la durée réelle si connue
+      v.addEventListener('loadedmetadata', () => {
+        if (v.duration && isFinite(v.duration)) {
+          const dur = Math.ceil(v.duration) * 1000;
+          clearTimeout(mainTimer);
+          mainTimer = setTimeout(() => show((cur + 1) % slides.length), dur + READING_PAUSE);
+          startProgress(dur + READING_PAUSE, slide.dataset.color);
+        }
+      }, { once: true });
+      v.addEventListener('ended', () => {
+        clearTimeout(mainTimer);
+        show((cur + 1) % slides.length);
+      }, { once: true });
+    }
+
+    // ── Pause toutes les vidéos sauf la slide active ──────
+    function pauseOtherVideos(activeSIdx) {
+      slides.forEach((s, i) => {
+        if (i !== activeSIdx) { const v = s.querySelector('video'); if (v) v.pause(); }
+      });
+    }
+
+    // ── Images intelligentes (contain + solo si 1 image) ──
+    function initImages(slideEl) {
+      slideEl.querySelectorAll('.s-images').forEach(container => {
+        const n = container.querySelectorAll('img').length;
+        container.classList.toggle('solo', n === 1);
+      });
+    }
+
+    // ── onSlideActive : dispatch selon layout ─────────────
+    function onSlideActive(slideEl, dur) {
+      const layout = slideEl.dataset.layout;
+      initImages(slideEl);
+      if (layout === 'annonce' || layout === 'countdown') startTypewriter(slideEl, dur);
+      if (layout === 'countdown') startCountdown(slideEl);
+      if (layout === 'stats')    startStats(slideEl);
+      if (layout === 'video')    handleVideo(slideEl);
+      pauseOtherVideos(cur);
+    }
+
+    // ── Afficher un slide ─────────────────────────────────
+    function show(idx) {
+      slides[cur].classList.remove('active');
+      slides[cur].classList.add('prev');
+      setTimeout(() => slides[cur].classList.remove('prev'), 1000);
+
+      cur = idx;
+      const slide = slides[cur];
+      const dur   = parseInt(slide.dataset.dur) * 1000;
+
+      slide.classList.add('active');
+      onSlideActive(slide, dur);
+      startProgress(dur + READING_PAUSE, slide.dataset.color);
+
+      clearTimeout(mainTimer);
+      mainTimer = setTimeout(() => show((cur + 1) % slides.length), dur + READING_PAUSE);
+    }
+
+    // ── Restart propre ────────────────────────────────────
+    function restartCurrent() {
+      clearTimeout(mainTimer);
+      clearInterval(countdownInterval);
+      twGen++;
+      // Remet tous les slides dans un état propre
+      slides.forEach((s, i) => {
+        s.classList.remove('prev');
+        if (i !== cur) s.classList.remove('active');
+      });
+      const slide = slides[cur];
+      slide.classList.add('active');
+      const dur = parseInt(slide.dataset.dur) * 1000;
+      const p = slide.querySelector('.s-text p');
+      if (p) { p.innerHTML = ''; p.classList.remove('done'); }
+      onSlideActive(slide, dur);
+      startProgress(dur + READING_PAUSE, slide.dataset.color);
+      mainTimer = setTimeout(() => show((cur + 1) % slides.length), dur + READING_PAUSE);
+    }
+
+    // ── Init ──────────────────────────────────────────────
+    {
+      const s   = slides[0];
+      const dur = parseInt(s.dataset.dur) * 1000;
+      onSlideActive(s, dur);
+      startProgress(dur + READING_PAUSE, s.dataset.color);
+      mainTimer = setTimeout(() => show(1 % slides.length), dur + READING_PAUSE);
+    }
+
+    // ── Horloge ───────────────────────────────────────────
+    function updateClock() {
+      const n = new Date();
+      const t = String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+      document.querySelectorAll('.clock').forEach(el => el.textContent = t);
+      const tc = document.getElementById('ticker-clock');
+      if (tc) tc.textContent = t;
+    }
+    updateClock(); setInterval(updateClock, 15000);
+
+    // ── Ticker ────────────────────────────────────────────
+    const tickerItems = {{ ticker | tojson }};
+    const tickerEl    = document.getElementById('ticker-msg');
+    let tickerIdx = 0;
+    if (tickerEl && tickerItems.length > 1) {
+      function rotateTicker() {
+        tickerEl.classList.add('hidden');
+        setTimeout(() => {
+          tickerIdx = (tickerIdx + 1) % tickerItems.length;
+          tickerEl.textContent = tickerItems[tickerIdx].text;
+          tickerEl.classList.remove('hidden');
+          setTimeout(rotateTicker, 8000);
+        }, 500);
+      }
+      setTimeout(rotateTicker, 8000);
+    }
+
+    // ── Visibilité ────────────────────────────────────────
+    let hiddenAt = null;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { hiddenAt = Date.now(); }
+      else {
+        const away = hiddenAt ? Date.now() - hiddenAt : 0;
+        hiddenAt = null;
+        if (away > 2 * 60 * 1000) location.reload();
+        else restartCurrent();
+      }
+    });
+  </script>
+
+{% else %}
+  <div class="empty">Aucune annonce active</div>
+{% endif %}
+
+</body>
+</html>

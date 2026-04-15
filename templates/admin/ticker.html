@@ -1,0 +1,125 @@
+{% extends "admin/layout.html" %}
+{% block content %}
+
+<div class="card">
+  <div class="card-title">
+    <span>Bandeau d'informations</span>
+    <span style="font-size:.78rem;color:#bbb;font-weight:400">Affiché en bas de l'écran — une info à la fois</span>
+  </div>
+
+  {# Liste des messages #}
+  {% if items %}
+  <table style="margin-bottom:1.5rem">
+    <thead>
+      <tr>
+        <th>Message</th>
+        <th>État</th>
+        <th>Ordre</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for item in items %}
+    <tr class="{% if not item.active %}inactive{% endif %}">
+      <td>
+        {% if item.active %}<strong>{{ item.text }}</strong>{% else %}{{ item.text }}{% endif %}
+      </td>
+      <td>
+        <span class="badge {% if item.active %}badge-on{% else %}badge-off{% endif %}">
+          {{ 'Actif' if item.active else 'Masqué' }}
+        </span>
+      </td>
+      <td>
+        <div class="actions">
+          <form method="post" style="display:inline">
+            <input type="hidden" name="action" value="up">
+            <input type="hidden" name="tid" value="{{ item.id }}">
+            <button class="btn btn-gray btn-icon">↑</button>
+          </form>
+          <form method="post" style="display:inline">
+            <input type="hidden" name="action" value="down">
+            <input type="hidden" name="tid" value="{{ item.id }}">
+            <button class="btn btn-gray btn-icon">↓</button>
+          </form>
+        </div>
+      </td>
+      <td>
+        <div class="actions">
+          {# Édition inline #}
+          <button class="btn btn-gray btn-icon" title="Modifier"
+                  onclick="openEdit({{ item.id }}, {{ item.text | tojson }})">✏️</button>
+          <form method="post" style="display:inline">
+            <input type="hidden" name="action" value="toggle">
+            <input type="hidden" name="tid" value="{{ item.id }}">
+            <button class="btn btn-gray btn-icon" title="{{ 'Masquer' if item.active else 'Activer' }}">
+              {{ '🙈' if item.active else '👁' }}
+            </button>
+          </form>
+          <form method="post" style="display:inline"
+                onsubmit="return confirm('Supprimer ce message ?')">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="tid" value="{{ item.id }}">
+            <button class="btn btn-danger btn-icon">🗑</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#ccc;font-size:.9rem;margin-bottom:1.2rem">
+    Aucun message — le bandeau ne s'affichera pas.
+  </p>
+  {% endif %}
+
+  {# Ajouter #}
+  <form method="post"
+        style="background:#fafafa;border:1.5px dashed #e0e0e0;border-radius:8px;padding:1.1rem">
+    <input type="hidden" name="action" value="add">
+    <p style="font-size:.82rem;font-weight:700;color:#666;margin-bottom:.7rem">+ Nouveau message</p>
+    <div style="display:flex;gap:.7rem;align-items:flex-end">
+      <div style="flex:1">
+        <label for="ticker-text" style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:.3rem">Texte</label>
+        <input type="text" id="ticker-text" name="text" required
+               placeholder="Ex : Exercice de nuit le 18 avril à 20h00 – Présence obligatoire"
+               style="width:100%">
+      </div>
+      <button type="submit" class="btn btn-primary" style="flex-shrink:0">Ajouter</button>
+    </div>
+  </form>
+</div>
+
+{# Modal édition #}
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:1.5rem;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <p style="font-weight:700;margin-bottom:.8rem">Modifier le message</p>
+    <form method="post" id="edit-form">
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" name="tid" id="edit-tid">
+      <input type="text" name="text" id="edit-text" style="width:100%;margin-bottom:1rem">
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button type="button" class="btn btn-gray" onclick="closeEdit()">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEdit(id, text) {
+    document.getElementById('edit-tid').value  = id;
+    document.getElementById('edit-text').value = text;
+    const m = document.getElementById('edit-modal');
+    m.style.display = 'flex';
+    document.getElementById('edit-text').focus();
+  }
+  function closeEdit() {
+    document.getElementById('edit-modal').style.display = 'none';
+  }
+  document.getElementById('edit-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeEdit();
+  });
+</script>
+
+{% endblock %}

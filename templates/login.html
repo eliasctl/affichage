@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — Affichage SDIS</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #f0f0f0;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    .card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.10);
+      padding: 2.5rem 2rem; width: 100%; max-width: 360px;
+      text-align: center;
+    }
+    .card img { height: 64px; margin-bottom: 1.2rem; }
+    .card h1 {
+      font-size: 1.2rem; font-weight: 700; color: #1a1a1a;
+      margin-bottom: .3rem;
+    }
+    .card p { font-size: .85rem; color: #888; margin-bottom: 1.6rem; }
+    input[type=password] {
+      width: 100%; padding: .75rem 1rem;
+      border: 1.5px solid #ddd; border-radius: 7px;
+      font-size: 1rem; outline: none;
+      transition: border-color .2s;
+    }
+    input[type=password]:focus { border-color: #C0392B; }
+    .error {
+      margin-top: .6rem; font-size: .85rem; color: #C0392B;
+    }
+    button {
+      margin-top: 1rem; width: 100%; padding: .8rem;
+      background: #C0392B; color: #fff; border: none;
+      border-radius: 7px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    button:hover { background: #a93226; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/static/logo-sdis.png" alt="SDIS"
+         onerror="this.style.display='none'">
+    <h1>Gestion de l'affichage</h1>
+    <p>CIS Fontainebleau</p>
+    <form method="post">
+      <input type="password" name="password" placeholder="Mot de passe" autofocus required>
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <button type="submit">Connexion</button>
+    </form>
+  </div>
+</body>
+</html>

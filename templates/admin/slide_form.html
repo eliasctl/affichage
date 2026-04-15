@@ -1,0 +1,376 @@
+{% extends "admin/layout.html" %}
+{% block content %}
+
+<div class="card">
+  <div class="card-title">
+    <span>{{ 'Modifier' if slide else 'Nouvelle annonce' }}</span>
+    <a href="/admin" class="btn btn-gray">← Retour</a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="main-form">
+
+    {# ── Type (couleur) ── #}
+    <div class="form-group">
+      <label>Type d'information</label>
+      <div class="type-selector">
+        {% for key, meta in slide_types.items() %}
+        <label class="type-option">
+          <input type="radio" name="type" value="{{ key }}"
+                 {% if (slide and slide.type == key) or (not slide and key == 'intervention') %}checked{% endif %}>
+          <span style="--c:{{ meta.color }}">{{ meta.label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Layout ── #}
+    <div class="form-group">
+      <label>Modèle d'affichage</label>
+      <div class="layout-selector">
+        {% for key, label in slide_layouts.items() %}
+        <label class="layout-option">
+          <input type="radio" name="layout" value="{{ key }}" id="layout-{{ key }}"
+                 {% if (slide and slide.layout == key) or (not slide and key == 'annonce') %}checked{% endif %}>
+          <span>
+            <span class="layout-ico">{{ {'annonce':'📝','photo':'🖼️','countdown':'⏳','stats':'📊','video':'🎬','meteo':'🌤️'}[key] }}</span>
+            {{ label }}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Titre ── #}
+    <div class="form-group">
+      <label for="title">Titre *</label>
+      <input type="text" id="title" name="title" required
+             value="{{ slide.title if slide else '' }}"
+             placeholder="Titre affiché dans le bandeau">
+    </div>
+
+    {# ══ Champs par layout ══ #}
+
+    {# ── annonce / countdown : texte riche ── #}
+    <div class="extra-section" id="sec-text">
+      <div class="form-group">
+        <label>Texte</label>
+        <div class="editor-bar">
+          <button type="button" data-cmd="bold" title="Gras (Ctrl+B)"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="Italique (Ctrl+I)"><i>I</i></button>
+          <button type="button" data-cmd="underline" title="Souligné (Ctrl+U)"><u>U</u></button>
+          <span class="bar-sep"></span>
+          <button type="button" data-cmd="removeFormat" title="Effacer le format">✕</button>
+        </div>
+        <div id="editor" contenteditable="true" class="editor"
+             >{% if slide and slide.content %}{{ slide.content | safe }}{% endif %}</div>
+        <input type="hidden" name="content" id="content-hidden">
+        <p class="hint">Durée calculée automatiquement selon la longueur du texte.</p>
+      </div>
+    </div>
+
+    {# ── photo : légende ── #}
+    <div class="extra-section" id="sec-photo-caption" style="display:none">
+      <div class="form-group">
+        <label for="photo-cap">Légende (optionnelle)</label>
+        <input type="text" id="photo-cap" placeholder="Légende affichée en bas de l'image">
+        <p class="hint">Le champ Texte ci-dessus est utilisé comme légende pour le layout Photo.</p>
+      </div>
+    </div>
+
+    {# ── countdown : date cible ── #}
+    <div class="extra-section" id="sec-countdown" style="display:none">
+      <div class="form-group">
+        <label for="cd_target">Date et heure cible *</label>
+        <input type="datetime-local" id="cd_target" name="cd_target"
+               value="{{ slide.extra.get('target','') if slide else '' }}">
+        <p class="hint">Le compte à rebours s'affiche jusqu'à cette date/heure.</p>
+      </div>
+    </div>
+
+    {# ── stats : items ── #}
+    <div class="extra-section" id="sec-stats" style="display:none">
+      <div class="form-group">
+        <label>Statistiques</label>
+        <div id="stats-list">
+          {# Rempli par JS depuis slide.extra.items ou vide #}
+        </div>
+        <button type="button" class="btn btn-gray" id="btn-add-stat" style="margin-top:.5rem">+ Ajouter une stat</button>
+        <input type="hidden" id="stats-json" name="stats_json" value="{{ slide.extra.get('items', []) | tojson if slide else '[]' }}">
+        <p class="hint">Emoji + chiffre + libellé. Ordre = ordre d'affichage.</p>
+      </div>
+    </div>
+
+    {# ── video : upload ── #}
+    <div class="extra-section" id="sec-video" style="display:none">
+      <div class="form-group">
+        <label>Fichier vidéo</label>
+        {% if slide and slide.layout == 'video' and slide.extra.get('filename') %}
+        <p style="font-size:.82rem;color:#888;margin-bottom:.4rem">
+          Actuel : <strong>{{ slide.extra.filename }}</strong>
+        </p>
+        {% endif %}
+        <input type="file" name="video_file" accept="video/mp4,video/webm">
+        <p class="hint">MP4 ou WebM — la durée du slide s'adapte automatiquement à la vidéo.</p>
+      </div>
+    </div>
+
+    {# ── meteo ── #}
+    <div class="extra-section" id="sec-meteo" style="display:none">
+      <div class="form-group">
+        <label for="meteo_search">Ville</label>
+        <div style="position:relative">
+          <input type="text" id="meteo_search" autocomplete="off"
+                 placeholder="Rechercher une ville…"
+                 value="{{ slide.extra.get('city','') if slide else '' }}">
+          <div id="meteo_suggestions"></div>
+        </div>
+        <input type="hidden" id="meteo_city" name="meteo_city" value="{{ slide.extra.get('city','') if slide else '' }}">
+        <input type="hidden" id="meteo_lat"  name="meteo_lat"  value="{{ slide.extra.get('lat','') if slide else '' }}">
+        <input type="hidden" id="meteo_lon"  name="meteo_lon"  value="{{ slide.extra.get('lon','') if slide else '' }}">
+        <p class="hint" id="meteo_confirm">{% if slide and slide.extra.get('lat') %}📍 {{ slide.extra.get('city','') }} ({{ slide.extra.get('lat','') }}, {{ slide.extra.get('lon','') }}){% endif %}</p>
+        <p class="hint">Données open-meteo.com — rafraîchies toutes les 10 min.</p>
+      </div>
+    </div>
+
+    {# ── Images (annonce / countdown / photo) ── #}
+    <div class="extra-section" id="sec-images">
+      {% if slide and slide.images %}
+      <div class="form-group">
+        <label>Images actuelles</label>
+        <div style="display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.4rem">
+          {% for img in slide.images %}
+          <div>
+            <img src="/static/uploads/{{ img }}"
+                 style="height:90px;border-radius:6px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.12)">
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;margin-top:.3rem;cursor:pointer">
+              <input type="checkbox" name="delete_img" value="{{ img }}"> Supprimer
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <label>{{ 'Ajouter des images' if slide and slide.images else 'Images (optionnel)' }}</label>
+        <input type="file" id="images" name="images" accept="image/*" multiple>
+        <div id="preview" style="display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.6rem"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.7rem;margin-top:1.4rem">
+      <button type="submit" class="btn btn-primary">
+        {{ '💾 Enregistrer' if slide else '✅ Créer' }}
+      </button>
+      <a href="/admin" class="btn btn-gray">Annuler</a>
+    </div>
+
+  </form>
+</div>
+
+<style>
+  .type-selector,.layout-selector{display:flex;gap:.45rem;flex-wrap:wrap}
+  .type-option,.layout-option{cursor:pointer}
+  .type-option input,.layout-option input{display:none}
+  .type-option span{display:inline-block;padding:.38rem .9rem;border-radius:6px;border:2px solid var(--c);color:var(--c);font-size:.82rem;font-weight:700;transition:background .12s,color .12s}
+  .type-option input:checked+span{background:var(--c);color:#fff}
+  .layout-option span{display:inline-flex;align-items:center;gap:.3rem;padding:.38rem .85rem;border-radius:6px;border:2px solid #ddd;color:#555;font-size:.82rem;font-weight:600;transition:background .12s,border-color .12s}
+  .layout-option input:checked+span{border-color:#C0392B;background:#fff3f3;color:#C0392B}
+  .layout-ico{font-size:1rem}
+  .editor-bar{display:flex;align-items:center;gap:.2rem;border:1.5px solid #ddd;border-bottom:none;border-radius:7px 7px 0 0;padding:.3rem .5rem;background:#fafafa}
+  .editor-bar button{padding:.28rem .6rem;border:1.5px solid transparent;border-radius:4px;background:none;cursor:pointer;font-size:.9rem;line-height:1;transition:background .12s;color:#333}
+  .editor-bar button:hover{background:#f0f0f0;border-color:#ddd}
+  .editor-bar button.active{background:#f0e8e8;border-color:#C0392B;color:#C0392B}
+  .bar-sep{width:1px;height:18px;background:#ddd;margin:0 .2rem}
+  .editor{min-height:110px;border:1.5px solid #ddd;border-radius:0 0 7px 7px;padding:.65rem .9rem;font-size:.95rem;font-family:inherit;outline:none;line-height:1.7;color:#1a1a1a;transition:border-color .2s}
+  .editor:focus{border-color:#C0392B}
+  .editor:empty:before{content:attr(data-placeholder);color:#bbb;pointer-events:none}
+  .stat-row{display:flex;gap:.5rem;align-items:center;margin-bottom:.4rem}
+  .stat-row input{padding:.45rem .7rem;border:1.5px solid #ddd;border-radius:6px;font-size:.85rem;font-family:inherit;outline:none}
+  .stat-row input:focus{border-color:#C0392B}
+  .stat-row .inp-emoji{width:70px}
+  .stat-row .inp-val{width:90px}
+  .stat-row .inp-lbl{flex:1}
+  .stat-row .btn-rm{padding:.38rem .55rem;background:#fde8e8;color:#C0392B;border:none;border-radius:5px;cursor:pointer;font-size:.8rem}
+  #meteo_suggestions{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #C0392B;border-top:none;border-radius:0 0 7px 7px;z-index:50;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  #meteo_suggestions .sug-item{padding:.55rem .9rem;cursor:pointer;font-size:.88rem;border-bottom:1px solid #f5f5f5;display:flex;flex-direction:column;gap:.1rem}
+  #meteo_suggestions .sug-item:last-child{border-bottom:none}
+  #meteo_suggestions .sug-item:hover,.sug-item.focused{background:#fff3f3}
+  #meteo_suggestions .sug-name{font-weight:700;color:#1a1a1a}
+  #meteo_suggestions .sug-sub{font-size:.75rem;color:#aaa}
+  #meteo_confirm{color:#1a7a45;min-height:1.2em}
+</style>
+
+<script>
+  // ── Layout selector : affiche/masque les sections ─────
+  const LAYOUT_SECTIONS = {
+    annonce:   ['sec-text','sec-images'],
+    photo:     ['sec-text','sec-images'],
+    countdown: ['sec-text','sec-countdown','sec-images'],
+    stats:     ['sec-stats'],
+    video:     ['sec-video'],
+    meteo:     ['sec-meteo'],
+  };
+  const ALL_SECTIONS = ['sec-text','sec-photo-caption','sec-countdown','sec-stats','sec-video','sec-meteo','sec-images'];
+
+  function applyLayout(val) {
+    ALL_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    (LAYOUT_SECTIONS[val] || ['sec-text','sec-images']).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = '';
+    });
+  }
+
+  document.querySelectorAll('[name=layout]').forEach(r => {
+    r.addEventListener('change', e => applyLayout(e.target.value));
+  });
+  // Init
+  const currentLayout = document.querySelector('[name=layout]:checked')?.value || 'annonce';
+  applyLayout(currentLayout);
+
+  // ── Éditeur riche ─────────────────────────────────────
+  const editorEl = document.getElementById('editor');
+  const hiddenEl = document.getElementById('content-hidden');
+  editorEl?.setAttribute('data-placeholder', 'Texte affiché…');
+
+  document.querySelectorAll('.editor-bar [data-cmd]').forEach(btn => {
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      document.execCommand(btn.dataset.cmd, false, null);
+      editorEl?.focus();
+      syncHidden(); updateToolbar();
+    });
+  });
+  function updateToolbar() {
+    ['bold','italic','underline'].forEach(cmd => {
+      const b = document.querySelector(`.editor-bar [data-cmd="${cmd}"]`);
+      if (b) b.classList.toggle('active', document.queryCommandState(cmd));
+    });
+  }
+  editorEl?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.execCommand('insertLineBreak'); }
+  });
+  editorEl?.addEventListener('input', syncHidden);
+  editorEl?.addEventListener('keyup', updateToolbar);
+  editorEl?.addEventListener('mouseup', updateToolbar);
+  document.addEventListener('selectionchange', updateToolbar);
+  function syncHidden() { if (hiddenEl && editorEl) hiddenEl.value = editorEl.innerHTML; }
+
+  // ── Stats ─────────────────────────────────────────────
+  let statsItems = [];
+  try { statsItems = JSON.parse(document.getElementById('stats-json')?.value || '[]'); } catch(e) {}
+
+  function renderStats() {
+    const list = document.getElementById('stats-list');
+    if (!list) return;
+    list.innerHTML = '';
+    statsItems.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+      row.innerHTML = `
+        <input class="inp-emoji" type="text" placeholder="🚒" maxlength="4" value="${item.emoji||''}">
+        <input class="inp-val"   type="text" placeholder="142" value="${item.value||''}">
+        <input class="inp-lbl"   type="text" placeholder="Libellé" value="${item.label||''}">
+        <button type="button" class="btn-rm">✕</button>`;
+      row.querySelector('.inp-emoji').oninput = e => { statsItems[i].emoji = e.target.value; syncStats(); };
+      row.querySelector('.inp-val').oninput   = e => { statsItems[i].value = e.target.value; syncStats(); };
+      row.querySelector('.inp-lbl').oninput   = e => { statsItems[i].label = e.target.value; syncStats(); };
+      row.querySelector('.btn-rm').onclick = () => { statsItems.splice(i,1); renderStats(); syncStats(); };
+      list.appendChild(row);
+    });
+  }
+  function syncStats() {
+    const el = document.getElementById('stats-json');
+    if (el) el.value = JSON.stringify(statsItems);
+  }
+  document.getElementById('btn-add-stat')?.addEventListener('click', () => {
+    statsItems.push({ emoji: '', value: '', label: '' });
+    renderStats(); syncStats();
+  });
+  renderStats();
+
+  // ── Prévisualisation images ───────────────────────────
+  document.getElementById('images')?.addEventListener('change', function() {
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '';
+    [...this.files].forEach(f => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.style.cssText = 'height:80px;border-radius:5px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.12)';
+      preview.appendChild(img);
+    });
+  });
+
+  // ── Météo : recherche de ville ────────────────────────
+  const meteoSearch = document.getElementById('meteo_search');
+  const meteoSugg   = document.getElementById('meteo_suggestions');
+  const meteoCity   = document.getElementById('meteo_city');
+  const meteoLat    = document.getElementById('meteo_lat');
+  const meteoLon    = document.getElementById('meteo_lon');
+  const meteoConf   = document.getElementById('meteo_confirm');
+  let meteoDebounce, focusedIdx = -1;
+
+  function closeSugg() { meteoSugg.style.display = 'none'; meteoSugg.innerHTML = ''; focusedIdx = -1; }
+
+  async function searchCity(q) {
+    if (q.length < 2) { closeSugg(); return; }
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=fr&format=json`);
+      const d = await r.json();
+      const results = d.results || [];
+      if (!results.length) { closeSugg(); return; }
+      meteoSugg.innerHTML = '';
+      results.forEach((c, i) => {
+        const div = document.createElement('div');
+        div.className = 'sug-item';
+        div.innerHTML = `<span class="sug-name">${c.name}</span><span class="sug-sub">${[c.admin1, c.country].filter(Boolean).join(' · ')}</span>`;
+        div.addEventListener('mousedown', e => { e.preventDefault(); selectCity(c); });
+        meteoSugg.appendChild(div);
+      });
+      meteoSugg.style.display = 'block';
+      focusedIdx = -1;
+    } catch(e) { closeSugg(); }
+  }
+
+  function selectCity(c) {
+    const label = [c.name, c.admin1, c.country].filter(Boolean).join(', ');
+    meteoSearch.value = c.name;
+    meteoCity.value   = c.name;
+    meteoLat.value    = c.latitude;
+    meteoLon.value    = c.longitude;
+    meteoConf.textContent = `📍 ${label} (${c.latitude}, ${c.longitude})`;
+    closeSugg();
+  }
+
+  meteoSearch?.addEventListener('input', e => {
+    clearTimeout(meteoDebounce);
+    meteoDebounce = setTimeout(() => searchCity(e.target.value.trim()), 300);
+  });
+
+  meteoSearch?.addEventListener('keydown', e => {
+    const items = meteoSugg.querySelectorAll('.sug-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusedIdx = Math.min(focusedIdx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusedIdx = Math.max(focusedIdx - 1, 0);
+    } else if (e.key === 'Enter' && focusedIdx >= 0) {
+      e.preventDefault();
+      items[focusedIdx].dispatchEvent(new MouseEvent('mousedown'));
+      return;
+    } else if (e.key === 'Escape') { closeSugg(); return; }
+    items.forEach((it, i) => it.classList.toggle('focused', i === focusedIdx));
+    if (focusedIdx >= 0) items[focusedIdx].scrollIntoView({ block: 'nearest' });
+  });
+
+  meteoSearch?.addEventListener('blur', () => setTimeout(closeSugg, 150));
+
+  // ── Sync avant envoi ──────────────────────────────────
+  document.getElementById('main-form').addEventListener('submit', syncHidden);
+</script>
+
+{% endblock %}

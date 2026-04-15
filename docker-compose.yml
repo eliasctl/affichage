@@ -1,0 +1,15 @@
+services:
+  affichage:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - affichage_uploads:/app/static/uploads
+      - affichage_icons:/app/static/icons
+      - affichage_db:/app/data
+    restart: unless-stopped
+
+volumes:
+  affichage_uploads:
+  affichage_icons:
+  affichage_db:

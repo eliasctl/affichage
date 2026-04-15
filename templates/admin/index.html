@@ -1,0 +1,121 @@
+{% extends "admin/layout.html" %}
+{% block content %}
+
+<div class="card">
+  <div class="card-title">
+    <span>Annonces ({{ slides | length }})</span>
+    <a href="/admin/new" class="btn btn-primary">+ Nouvelle annonce</a>
+  </div>
+
+  {% set type_colors = {'intervention': '#C0392B', 'caserne': '#1A5276', 'information': '#566573'} %}
+  {% set type_labels = {'intervention': 'Intervention', 'caserne': 'Vie de caserne', 'information': 'Information'} %}
+
+  {% if slides %}
+  <table id="slides-table">
+    <thead>
+      <tr>
+        <th style="width:2rem"></th>
+        <th>Type</th>
+        <th>Titre</th>
+        <th>État</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="slides-tbody">
+    {% for s in slides %}
+    {% set stype = s.type if s.type else 'intervention' %}
+    {% set scolor = type_colors.get(stype, '#C0392B') %}
+    <tr class="{% if not s.active %}inactive{% endif %}" draggable="true" data-id="{{ s.id }}">
+      <td class="drag-handle" title="Glisser pour réordonner">⠿</td>
+      <td>
+        <span style="
+          display:inline-block;padding:.22rem .55rem;border-radius:4px;
+          font-size:.72rem;font-weight:700;letter-spacing:.05em;white-space:nowrap;
+          background:{{ scolor }};color:#fff
+        ">{{ type_labels.get(stype, stype) }}</span>
+      </td>
+      <td>
+        <strong>{{ s.title or '(sans titre)' }}</strong>
+        {% if s.images %}
+        <span style="font-size:.75rem;color:#bbb;margin-left:.4rem">
+          📎 {{ s.images | length }} image{{ 's' if s.images | length > 1 }}
+        </span>
+        {% endif %}
+      </td>
+      <td>
+        <span class="badge {% if s.active %}badge-on{% else %}badge-off{% endif %}">
+          {{ 'Actif' if s.active else 'Masqué' }}
+        </span>
+      </td>
+      <td>
+        <div class="actions">
+          <a href="/admin/edit/{{ s.id }}" class="btn btn-gray btn-icon" title="Modifier">✏️</a>
+          <form method="post" action="/admin/toggle/{{ s.id }}" style="display:inline">
+            <button class="btn btn-gray btn-icon" title="{{ 'Masquer' if s.active else 'Activer' }}">
+              {{ '🙈' if s.active else '👁' }}
+            </button>
+          </form>
+          <form method="post" action="/admin/delete/{{ s.id }}" style="display:inline"
+                onsubmit="return confirm('Supprimer cette annonce ?')">
+            <button class="btn btn-danger btn-icon" title="Supprimer">🗑</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <style>
+    .drag-handle { cursor: grab; color: #ccc; font-size: 1.2rem; text-align: center; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+    tr.drag-over { outline: 2px solid #C0392B; outline-offset: -2px; }
+    tr.dragging { opacity: .4; }
+  </style>
+
+  <script>
+    const tbody = document.getElementById('slides-tbody');
+    let dragSrc = null;
+
+    tbody.addEventListener('dragstart', e => {
+      dragSrc = e.target.closest('tr');
+      dragSrc.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tbody.addEventListener('dragend', e => {
+      dragSrc?.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+    });
+    tbody.addEventListener('dragover', e => {
+      e.preventDefault();
+      const over = e.target.closest('tr');
+      if (!over || over === dragSrc) return;
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      over.classList.add('drag-over');
+    });
+    tbody.addEventListener('drop', e => {
+      e.preventDefault();
+      const over = e.target.closest('tr');
+      if (!over || over === dragSrc) return;
+      const rows = [...tbody.querySelectorAll('tr')];
+      const srcIdx  = rows.indexOf(dragSrc);
+      const overIdx = rows.indexOf(over);
+      if (srcIdx < overIdx) over.after(dragSrc);
+      else over.before(dragSrc);
+      const ids = [...tbody.querySelectorAll('tr')].map(r => r.dataset.id);
+      fetch('/admin/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+    });
+  </script>
+
+  {% else %}
+  <p style="color:#aaa;text-align:center;padding:2rem 0">
+    Aucune annonce — <a href="/admin/new" style="color:#C0392B">créer la première</a>
+  </p>
+  {% endif %}
+</div>
+
+{% endblock %}
