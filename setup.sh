@@ -34,7 +34,7 @@ sudo systemctl enable docker
 
 # ── Chromium + Openbox ────────────────────────────────────
 echo "→ Installation de Chromium / Openbox..."
-sudo apt-get install -y -qq chromium-browser xorg xinit openbox unclutter
+sudo apt-get install -y -qq chromium xorg xinit openbox unclutter
 
 # ── Démarrage de l'application ────────────────────────────
 echo "→ Démarrage de l'application..."
@@ -47,7 +47,7 @@ mkdir -p "$HOME/.config/openbox"
 cat > "$HOME/.config/openbox/autostart" << 'EOF'
 xset s off; xset s noblank; xset -dpms
 unclutter -idle 0.5 -root &
-chromium-browser --noerrdialogs --disable-infobars --kiosk \
+chromium --noerrdialogs --disable-infobars --kiosk \
   --disable-session-crashed-bubble http://localhost:8000 &
 EOF
 
