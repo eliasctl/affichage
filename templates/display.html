@@ -13,12 +13,12 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
-    {% if ticker %}body { height: calc(100vh - 38px); }{% endif %}
+    {% if ticker %}body { height: calc(100vh - 108px); }{% endif %}
 
     /* ── Slide ─────────────────────────────────────────── */
     .slide {
       position: absolute; top: 0; left: 0; right: 0;
-      bottom: {% if ticker %}38px{% else %}0{% endif %};
+      bottom: {% if ticker %}108px{% else %}0{% endif %};
       background: #fff;
       display: flex; flex-direction: column;
       opacity: 0; transition: opacity .9s ease;
@@ -34,7 +34,7 @@
       min-height: 10vh; max-height: 15vh;
     }
     .s-head img.logo {
-      height: clamp(36px, 6.5vh, 68px); width: auto; flex-shrink: 0;
+      height: clamp(48px, 9vh, 100px); width: auto; flex-shrink: 0;
     }
     .s-head .sep {
       width: 2px; background: rgba(255,255,255,.5);
@@ -42,17 +42,17 @@
     }
     .s-head h1 {
       flex: 1; text-align: center;
-      font-size: clamp(1.1rem, 3.2vw, 2.4rem);
+      font-size: clamp(1.8rem, 4.5vw, 3.5rem);
       font-weight: 800; font-style: italic; color: #fff;
       animation: slideTitle .55s ease both;
     }
     .type-badge {
       flex-shrink: 0;
-      font-size: clamp(.55rem, .9vw, .78rem); font-weight: 700;
+      font-size: clamp(1.4rem, 2.4vw, 2rem); font-weight: 700;
       letter-spacing: .08em; text-transform: uppercase;
-      color: rgba(255,255,255,.75);
-      border: 1.5px solid rgba(255,255,255,.35);
-      border-radius: 4px; padding: .22em .55em; white-space: nowrap;
+      color: rgba(255,255,255,.85);
+      border: 2px solid rgba(255,255,255,.45);
+      border-radius: 6px; padding: .4em 1em; white-space: nowrap;
     }
     @keyframes slideTitle {
       from { opacity: 0; transform: translateY(-8px); }
@@ -64,14 +64,14 @@
 
     /* Colonne icônes */
     .s-icons {
-      flex: 0 0 auto; width: clamp(54px, 5.5vw, 84px);
+      flex: 0 0 auto; width: clamp(105px, 10vw, 165px);
       background: #f9f9f9; border-right: 1px solid #eee;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: clamp(6px, 1.2vh, 16px); padding: 1.5vh .4vw;
+      gap: clamp(12px, 2vh, 30px); padding: 2vh .6vw;
     }
-    .s-icons img { width: 100%; max-width: clamp(40px,4vw,64px); height: auto; object-fit: contain; border-radius: 4px; }
-    .s-icons span { font-size: clamp(.45rem,.7vw,.65rem); color: #888; text-align: center; line-height: 1.2; }
+    .s-icons img { width: 100%; max-width: clamp(78px,8vw,128px); height: auto; object-fit: contain; border-radius: 4px; }
+    .s-icons span { font-size: clamp(.9rem,1.4vw,1.25rem); color: #888; text-align: center; line-height: 1.2; }
     .icon-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 
     /* ── Footer ─────────────────────────────────────────── */
@@ -79,7 +79,7 @@
       display: flex; justify-content: space-between; align-items: center;
       padding: .35vh 1.8vw;
       background: #f5f5f5; border-top: 2px solid #e8e8e8;
-      font-size: clamp(.6rem,1vw,.8rem); color: #999; flex-shrink: 0;
+      font-size: clamp(.85rem,1.4vw,1.1rem); color: #999; flex-shrink: 0;
     }
     .s-foot .dot {
       display: inline-block; width: 7px; height: 7px;
@@ -88,8 +88,8 @@
 
     /* ── Barre de progression ───────────────────────────── */
     #progress {
-      position: fixed; bottom: {% if ticker %}38px{% else %}0{% endif %};
-      left: 0; height: 3px; width: 0%; z-index: 10;
+      position: fixed; bottom: {% if ticker %}108px{% else %}0{% endif %};
+      left: 0; height: 4px; width: 0%; z-index: 10;
     }
 
     /* ── LAYOUT : annonce ───────────────────────────────── */
@@ -112,7 +112,7 @@
     .s-text { flex: 1; display: flex; align-items: center; animation: fadeUp .6s .4s ease both; }
     .s-text.centered { justify-content: center; text-align: center; }
     .s-text p {
-      font-size: clamp(.95rem,2.3vw,1.75rem); line-height: 1.8;
+      font-size: clamp(1.4rem,3.2vw,2.6rem); line-height: 1.7;
       color: #1f1f1f; white-space: pre-wrap;
     }
     .tw-cursor { color: #C0392B; animation: blink .7s step-end infinite; font-style: normal; }
@@ -130,7 +130,7 @@
       position: absolute; bottom: 0; left: 0; right: 0;
       background: linear-gradient(transparent, rgba(0,0,0,.65));
       padding: 2.5vh 2vw 1.5vh;
-      color: #fff; font-size: clamp(.85rem,1.8vw,1.4rem); line-height: 1.5;
+      color: #fff; font-size: clamp(1.2rem,2.5vw,2rem); line-height: 1.5;
     }
 
     /* ── LAYOUT : countdown ─────────────────────────────── */
@@ -148,13 +148,13 @@
     }
     .cd-unit { display: flex; flex-direction: column; align-items: center; gap: .3vh; }
     .cd-val {
-      font-size: clamp(2rem,7vw,6rem); font-weight: 900;
+      font-size: clamp(3rem,9vw,8rem); font-weight: 900;
       line-height: 1; color: #1a1a1a; min-width: 1.5ch; text-align: center;
     }
-    .cd-lbl { font-size: clamp(.55rem,1vw,.85rem); font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: .08em; }
-    .cd-sep { font-size: clamp(1.5rem,5vw,4rem); font-weight: 300; color: #ccc; padding-bottom: .5vh; line-height: 1; }
+    .cd-lbl { font-size: clamp(.8rem,1.4vw,1.2rem); font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: .08em; }
+    .cd-sep { font-size: clamp(2rem,6.5vw,5.5rem); font-weight: 300; color: #ccc; padding-bottom: .5vh; line-height: 1; }
     .cd-event {
-      font-size: clamp(.85rem,1.6vw,1.3rem); color: #555;
+      font-size: clamp(1.1rem,2.2vw,1.8rem); color: #555;
       font-style: italic; animation: fadeUp .6s .5s ease both;
     }
     .cd-side { flex: 1; display: flex; flex-direction: column; gap: 1.5vh; overflow: hidden; }
@@ -174,12 +174,12 @@
       border: 1.5px solid #f0f0f0;
       width: 100%; animation: fadeUp .5s ease both;
     }
-    .stat-emoji { font-size: clamp(1.8rem,4vw,3.2rem); line-height: 1; }
+    .stat-emoji { font-size: clamp(2.5rem,5.5vw,4.5rem); line-height: 1; }
     .stat-val {
-      font-size: clamp(2rem,5.5vw,4.5rem); font-weight: 900; line-height: 1;
+      font-size: clamp(3rem,7.5vw,6rem); font-weight: 900; line-height: 1;
       color: #1a1a1a;
     }
-    .stat-lbl { font-size: clamp(.65rem,1.1vw,.95rem); color: #888; text-align: center; font-weight: 600; }
+    .stat-lbl { font-size: clamp(.9rem,1.6vw,1.3rem); color: #888; text-align: center; font-weight: 600; }
 
     /* ── LAYOUT : video ─────────────────────────────────── */
     .s-video {
@@ -188,68 +188,85 @@
     }
     .s-video video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* ── LAYOUT : meteo ─────────────────────────────────── */
+    /* ── LAYOUT : meteo ────────────���────────────────────── */
     .s-meteo {
       flex: 1; display: flex; flex-direction: column;
-      padding: 2.5vh 3vw 1.5vh; gap: 2vh; overflow: hidden;
+      align-items: center; justify-content: center;
+      padding: 3vh 4vw 2vh; gap: 3vh; overflow: hidden;
       animation: fadeUp .5s .2s ease both;
     }
     .meteo-top {
-      display: flex; align-items: center; gap: 3vw; flex-shrink: 0;
+      display: flex; align-items: center; gap: 4vw; flex-shrink: 0;
     }
     .meteo-now {
-      display: flex; align-items: center; gap: 1.5vw; flex-shrink: 0;
+      display: flex; align-items: center; gap: 2vw; flex-shrink: 0;
     }
-    .meteo-emoji { font-size: clamp(3rem,8vw,6.5rem); line-height: 1; }
+    .meteo-emoji { font-size: clamp(5rem,13vw,11rem); line-height: 1; }
     .meteo-temps { display: flex; flex-direction: column; }
-    .meteo-temp  { font-size: clamp(2.5rem,7vw,5.5rem); font-weight: 900; color: #1a1a1a; line-height: 1; }
-    .meteo-feels { font-size: clamp(.7rem,1.2vw,1rem); color: #aaa; margin-top: .3vh; }
-    .meteo-info  { display: flex; flex-direction: column; gap: .8vh; }
-    .meteo-desc  { font-size: clamp(1rem,2.2vw,1.7rem); font-weight: 700; color: #333; }
-    .meteo-row   { font-size: clamp(.72rem,1.3vw,1.1rem); color: #666; display: flex; align-items: center; gap: .4rem; }
+    .meteo-temp  { font-size: clamp(5rem,12vw,10rem); font-weight: 900; color: #1a1a1a; line-height: 1; }
+    .meteo-feels { font-size: clamp(1.1rem,2vw,1.7rem); color: #aaa; margin-top: .5vh; }
+    .meteo-info  { display: flex; flex-direction: column; gap: 1.2vh; }
+    .meteo-desc  { font-size: clamp(1.8rem,3.5vw,3rem); font-weight: 700; color: #333; }
+    .meteo-row   { font-size: clamp(1.3rem,2.2vw,1.9rem); color: #666; display: flex; align-items: center; gap: .6rem; }
     .meteo-row .ico { font-size: 1.2em; }
     /* Prévisions horaires */
     .meteo-forecast {
-      display: flex; gap: .8vw; overflow-x: auto; padding-bottom: .3vh;
-      scrollbar-width: none;
+      display: flex; gap: 1vw; overflow-x: auto; padding-bottom: .3vh;
+      scrollbar-width: none; flex-shrink: 0;
     }
     .meteo-forecast::-webkit-scrollbar { display: none; }
     .fc-card {
       flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
-      gap: .5vh; padding: .8vh .9vw;
-      background: #f8f8f8; border-radius: 10px; border: 1.5px solid #eee;
-      min-width: clamp(48px, 6vw, 80px);
+      gap: .6vh; padding: 1vh 1.1vw;
+      background: #f8f8f8; border-radius: 12px; border: 1.5px solid #eee;
+      min-width: clamp(70px, 8vw, 110px);
     }
     .fc-card.now { background: #fff3f3; border-color: #e0b0b0; }
-    .fc-hour  { font-size: clamp(.55rem,.9vw,.78rem); font-weight: 700; color: #aaa; text-transform: uppercase; }
-    .fc-emoji { font-size: clamp(1rem,2vw,1.6rem); line-height: 1; }
-    .fc-temp  { font-size: clamp(.75rem,1.3vw,1.1rem); font-weight: 800; color: #1a1a1a; }
-    .fc-precip{ font-size: clamp(.55rem,.85vw,.72rem); color: #6ab0e8; font-weight: 600; }
-    .meteo-unavail { color: #aaa; font-size: 1.2rem; margin: auto; }
+    .fc-hour  { font-size: clamp(.9rem,1.4vw,1.2rem); font-weight: 700; color: #aaa; text-transform: uppercase; }
+    .fc-emoji { font-size: clamp(1.8rem,3.2vw,2.8rem); line-height: 1; }
+    .fc-temp  { font-size: clamp(1.2rem,2vw,1.7rem); font-weight: 800; color: #1a1a1a; }
+    .fc-precip{ font-size: clamp(.85rem,1.3vw,1.1rem); color: #6ab0e8; font-weight: 600; }
+    /* Pr��visions journalières (5 jours) */
+    .meteo-daily {
+      display: flex; gap: 1.5vw; flex-shrink: 0;
+    }
+    .daily-card {
+      display: flex; flex-direction: column; align-items: center;
+      gap: .8vh; padding: 1.2vh 1.5vw;
+      background: #f0f4f8; border-radius: 14px; border: 2px solid #e2e8f0;
+      min-width: clamp(90px, 10vw, 140px);
+    }
+    .daily-day   { font-size: clamp(1rem,1.6vw,1.4rem); font-weight: 800; color: #555; text-transform: uppercase; }
+    .daily-emoji { font-size: clamp(2rem,3.5vw,3rem); line-height: 1; }
+    .daily-temps { display: flex; gap: .6vw; align-items: baseline; }
+    .daily-tmax  { font-size: clamp(1.3rem,2.2vw,1.9rem); font-weight: 900; color: #1a1a1a; }
+    .daily-tmin  { font-size: clamp(1rem,1.6vw,1.4rem); font-weight: 600; color: #aaa; }
+    .daily-precip{ font-size: clamp(.85rem,1.3vw,1.1rem); color: #6ab0e8; font-weight: 600; }
+    .meteo-unavail { color: #aaa; font-size: 1.5rem; margin: auto; }
 
     /* ── Ticker ─────────────────────────────────────────── */
     #ticker {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 38px;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 108px;
       display: flex; align-items: center; z-index: 200;
       background: #111827;
-      border-top: 2px solid #C0392B;
+      border-top: 4px solid #C0392B;
     }
     .ticker-tag {
       background: #C0392B; color: #fff; height: 100%;
       display: flex; align-items: center;
-      padding: 0 1rem; flex-shrink: 0;
-      font-size: clamp(.6rem,.9vw,.8rem); font-weight: 800;
+      padding: 0 1.8rem; flex-shrink: 0;
+      font-size: clamp(1.4rem,2.4vw,2rem); font-weight: 800;
       letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
     }
     .ticker-msg {
       flex: 1; color: #f1f5f9;
-      padding: 0 1.5rem;
-      font-size: clamp(.7rem,1.1vw,.9rem); font-weight: 500;
+      padding: 0 2rem;
+      font-size: clamp(1.6rem,2.8vw,2.4rem); font-weight: 500;
       opacity: 1; transition: opacity .5s ease;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .ticker-msg.hidden { opacity: 0; }
-    .ticker-clock { color: #64748b; padding-right: .8rem; font-size: .78rem; white-space: nowrap; }
+    .ticker-clock { color: #64748b; padding-right: 1.5rem; font-size: 2rem; white-space: nowrap; }
 
     /* ── Animations communes ────────────────────────────── */
     @keyframes fadeUp {
@@ -404,14 +421,17 @@
             {% endif %}
           </div>
         </div>
-        {% if w.forecast %}
-        <div class="meteo-forecast">
-          {% for fc in w.forecast %}
-          <div class="fc-card{% if loop.first %} now{% endif %}">
-            <div class="fc-hour">{{ 'Maint.' if loop.first else fc.hour }}</div>
-            <div class="fc-emoji">{{ fc.emoji }}</div>
-            <div class="fc-temp">{{ fc.temp }}°</div>
-            {% if fc.precip > 0 %}<div class="fc-precip">{{ fc.precip }}%</div>{% else %}<div class="fc-precip" style="opacity:0">0%</div>{% endif %}
+        {% if w.daily %}
+        <div class="meteo-daily">
+          {% for d in w.daily %}
+          <div class="daily-card">
+            <div class="daily-day">{{ d.day }}</div>
+            <div class="daily-emoji">{{ d.emoji }}</div>
+            <div class="daily-temps">
+              <span class="daily-tmax">{{ d.tmax }}°</span>
+              <span class="daily-tmin">{{ d.tmin }}°</span>
+            </div>
+            {% if d.precip > 0 %}<div class="daily-precip">💧 {{ d.precip }}%</div>{% endif %}
           </div>
           {% endfor %}
         </div>

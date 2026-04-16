@@ -81,7 +81,8 @@ def fetch_weather(lat, lon):
         f"&current=temperature_2m,apparent_temperature,weather_code,"
         f"wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day"
         f"&hourly=temperature_2m,weather_code,precipitation_probability,is_day"
-        f"&wind_speed_unit=kmh&forecast_days=2&timezone=Europe%2FParis"
+        f"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+        f"&wind_speed_unit=kmh&forecast_days=6&timezone=Europe%2FParis"
     )
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "affichage-sdis/1.0"})
@@ -114,6 +115,22 @@ def fetch_weather(lat, lon):
                 "precip": h["precipitation_probability"][i],
             })
 
+        # Prévisions journalières – 5 prochains jours (skip aujourd'hui)
+        d = data.get("daily", {})
+        day_names = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+        daily = []
+        for i in range(1, min(6, len(d.get("time", [])))):
+            d_code = d["weather_code"][i]
+            _, d_emoji = _wmo(d_code, True)
+            dt = datetime.strptime(d["time"][i], "%Y-%m-%d")
+            daily.append({
+                "day":    day_names[dt.weekday()],
+                "emoji":  d_emoji,
+                "tmax":   round(d["temperature_2m_max"][i]),
+                "tmin":   round(d["temperature_2m_min"][i]),
+                "precip": d["precipitation_probability_max"][i],
+            })
+
         result = {
             "temp":     round(c.get("temperature_2m", 0)),
             "feels":    round(c.get("apparent_temperature", 0)),
@@ -122,6 +139,7 @@ def fetch_weather(lat, lon):
             "wind_dir": WIND_DIRS[round(wind_deg / 45) % 8],
             "humidity": round(c.get("relative_humidity_2m", 0)),
             "forecast": forecast,
+            "daily":    daily,
         }
         _weather_cache[key] = {"data": result, "ts": time.time()}
         return result
