@@ -387,8 +387,8 @@ def admin_settings():
             if f and f.filename and allowed_img(f.filename):
                 ext = f.filename.rsplit(".", 1)[1].lower()
                 filename = f"logo.{ext}"
-                f.save(STATIC_DIR / filename)
-                set_setting("logo", filename)
+                f.save(UPLOAD_DIR / filename)
+                set_setting("logo", f"uploads/{filename}")
         elif action == "add_icon":
             fn = save_file("icon_file", ICONS_DIR, allowed_img)
             if fn:

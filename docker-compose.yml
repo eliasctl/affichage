@@ -6,10 +6,12 @@ services:
     volumes:
       - affichage_uploads:/app/static/uploads
       - affichage_icons:/app/static/icons
+      - affichage_videos:/app/static/videos
       - affichage_db:/app/data
     restart: unless-stopped
 
 volumes:
   affichage_uploads:
   affichage_icons:
+  affichage_videos:
   affichage_db:
