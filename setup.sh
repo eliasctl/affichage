@@ -3,6 +3,7 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+USER="$(whoami)"
 
 echo ""
 echo "┌─────────────────────────────────────────────┐"
@@ -25,24 +26,40 @@ EOF
 echo "→ Mise à jour du système..."
 sudo apt-get update -q && sudo apt-get full-upgrade -y -q
 
-# ── Docker ────────────────────────────────────────────────
-if ! command -v docker &>/dev/null; then
-  echo "→ Installation de Docker..."
-  curl -fsSL https://get.docker.com | sh
-  sudo usermod -aG docker "$(whoami)"
-fi
-sudo systemctl enable docker
-
-# ── Dépendances affichage (Chromium kiosk) ────────────────
-echo "→ Installation des dépendances d'affichage..."
+# ── Dépendances Python + affichage ────────────────────────
+echo "→ Installation des dépendances..."
 sudo apt-get install -y -q \
+  python3 python3-pip \
   chromium xserver-xorg x11-xserver-utils xinit openbox \
   unclutter-xfixes fonts-noto-color-emoji
 
-# ── Démarrage de l'application ────────────────────────────
-echo "→ Démarrage de l'application..."
-cd "$DIR"
-sudo docker compose up -d --build
+pip3 install --break-system-packages flask 2>/dev/null || pip3 install flask
+
+# ── Créer les dossiers ───────────────────────────────────
+mkdir -p "$DIR/data" "$DIR/static/uploads" "$DIR/static/icons" "$DIR/static/videos"
+
+# ── Service systemd Flask ─────────────────────────────────
+echo "→ Configuration du service Flask..."
+sudo tee /etc/systemd/system/affichage-flask.service > /dev/null << EOF
+[Unit]
+Description=Affichage SDIS (Flask)
+After=network.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$DIR
+ExecStart=/usr/bin/python3 $DIR/app.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable affichage-flask.service
+sudo systemctl restart affichage-flask.service
 
 # ── Script kiosk (lancé par openbox) ─────────────────────
 cat > "$DIR/kiosk.sh" << 'KIOSK'
@@ -100,14 +117,19 @@ sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 sudo tee /etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \$TERM
+ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
 EOF
 sudo systemctl daemon-reload
 
-# ── Nettoyage ancien service systemd (si existant) ────────
-sudo systemctl disable affichage-display.service 2>/dev/null || true
-sudo rm -f /etc/systemd/system/affichage-display.service
-sudo systemctl daemon-reload
+# ── Nettoyage Docker (si présent) ─────────────────────────
+if command -v docker &>/dev/null; then
+  echo "→ Arrêt des conteneurs Docker (si existants)..."
+  cd "$DIR" && sudo docker compose down 2>/dev/null || true
+  sudo systemctl disable docker 2>/dev/null || true
+  sudo systemctl stop docker 2>/dev/null || true
+  echo "  Docker désactivé (économie ~200 Mo RAM)."
+  echo "  Pour le supprimer complètement : sudo apt remove docker-ce docker-ce-cli"
+fi
 
 # ── Résumé ────────────────────────────────────────────────
 IP=$(hostname -I | awk '{print $1}')

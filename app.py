@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 import config
 from database import (
-    init_db,
+    init_db, get_content_hash,
     get_slides, get_slide, create_slide, update_slide, delete_slide, toggle_slide, move_slide, reorder_slides,
     get_setting, set_setting,
     get_icons, add_icon, delete_icon, move_icon,
@@ -21,6 +21,15 @@ from database import (
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
+
+
+# ── Compression gzip ─────────────────────────────────────────
+@app.after_request
+def add_headers(response):
+    # Cache statique 1 jour
+    if request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
 UPLOAD_DIR = Path(__file__).parent / "static" / "uploads"
 ICONS_DIR  = Path(__file__).parent / "static" / "icons"
@@ -244,13 +253,8 @@ def api_display():
 
 @app.route("/api/hash")
 def api_hash():
-    """Hash léger pour détecter les changements (polling)."""
-    import hashlib
-    slides = get_slides(active_only=True)
-    ticker = get_ticker(active_only=True)
-    raw = json.dumps({"s": slides, "t": ticker}, sort_keys=True)
-    h = hashlib.md5(raw.encode()).hexdigest()
-    return jsonify(hash=h)
+    """Hash léger mis en cache pour détecter les changements (polling)."""
+    return jsonify(hash=get_content_hash())
 
 
 # ── Auth ───────────────────────────────────────────────────
