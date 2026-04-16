@@ -766,6 +766,19 @@
 
 {% else %}
   <div class="empty">Aucune annonce active</div>
+  <script>
+    let lastHash = null;
+    async function checkForUpdates() {
+      try {
+        const r = await fetch('/api/hash');
+        const d = await r.json();
+        if (lastHash === null) { lastHash = d.hash; }
+        else if (d.hash !== lastHash) { location.reload(); }
+      } catch(e) {}
+    }
+    checkForUpdates();
+    setInterval(checkForUpdates, 10000);
+  </script>
 {% endif %}
 
 </body>
