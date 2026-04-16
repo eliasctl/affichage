@@ -33,61 +33,58 @@ if ! command -v docker &>/dev/null; then
 fi
 sudo systemctl enable docker
 
-# ── Dépendances affichage (WebView / WebKitGTK + X11) ────
+# ── Dépendances affichage (Chromium kiosk) ────────────────
 echo "→ Installation des dépendances d'affichage..."
 sudo apt-get install -y -q \
-  python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
-  python3-pip mpv unclutter-xfixes \
-  xserver-xorg x11-xserver-utils xinit openbox
-pip3 install --break-system-packages pywebview 2>/dev/null || pip3 install pywebview
+  chromium-browser xserver-xorg x11-xserver-utils xinit openbox \
+  unclutter-xfixes
 
 # ── Démarrage de l'application ────────────────────────────
 echo "→ Démarrage de l'application..."
 cd "$DIR"
 sudo docker compose up -d --build
 
-# ── Service systemd pour l'affichage ──────────────────────
-echo "→ Configuration du service d'affichage..."
-sudo tee /etc/systemd/system/affichage-display.service > /dev/null << EOF
-[Unit]
-Description=Affichage SDIS (WebView kiosk)
-After=docker.service
-Wants=docker.service
+# ── Script kiosk (lancé par openbox) ─────────────────────
+cat > "$DIR/kiosk.sh" << 'KIOSK'
+#!/usr/bin/env bash
+# Attendre que Flask soit prêt
+while ! curl -s -o /dev/null http://localhost:8000; do sleep 2; done
 
-[Service]
-Type=simple
-User=$(whoami)
-Environment=DISPLAY=:0
-Environment=FLASK_URL=http://localhost:8000
-Environment=GDK_BACKEND=x11
-ExecStart=/usr/bin/python3 $DIR/display_webview.py
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable affichage-display.service
-
-# ── Désactiver le blanking écran ──────────────────────────
-# Console blanking off
-sudo bash -c 'grep -q "consoleblank=0" /boot/firmware/cmdline.txt || sed -i "s/$/ consoleblank=0/" /boot/firmware/cmdline.txt'
-
-# ── Démarrage automatique X11 + affichage ─────────────────
-mkdir -p "$HOME/.config/openbox"
-cat > "$HOME/.config/openbox/autostart" << 'OBOX'
-# Désactiver écran de veille / blanking
+# Désactiver veille écran
 xset s off
 xset -dpms
 xset s noblank
 
 # Cacher le curseur
 unclutter-xfixes --hide-on-touch &
-OBOX
 
-# Auto-startx à la connexion sur tty1
+# Lancer Chromium en mode kiosk
+chromium-browser \
+  --kiosk \
+  --noerrdialogs \
+  --disable-infobars \
+  --disable-session-crashed-bubble \
+  --disable-restore-session-state \
+  --disable-features=TranslateUI \
+  --check-for-update-interval=31536000 \
+  --disable-component-update \
+  --autoplay-policy=no-user-gesture-required \
+  --start-fullscreen \
+  --incognito \
+  http://localhost:8000
+KIOSK
+chmod +x "$DIR/kiosk.sh"
+
+# ── Openbox lance le kiosk au démarrage de X ──────────────
+mkdir -p "$HOME/.config/openbox"
+cat > "$HOME/.config/openbox/autostart" << EOF
+$DIR/kiosk.sh &
+EOF
+
+# ── Désactiver le blanking écran (console) ────────────────
+sudo bash -c 'grep -q "consoleblank=0" /boot/firmware/cmdline.txt || sed -i "s/$/ consoleblank=0/" /boot/firmware/cmdline.txt'
+
+# ── Auto-startx à la connexion sur tty1 ──────────────────
 grep -q "startx" "$HOME/.profile" 2>/dev/null || cat >> "$HOME/.profile" << 'PROF'
 
 # Démarrage automatique de X11 sur tty1
@@ -105,6 +102,11 @@ ExecStart=-/sbin/agetty --autologin $(whoami) --noclear %I \$TERM
 EOF
 sudo systemctl daemon-reload
 
+# ── Nettoyage ancien service systemd (si existant) ────────
+sudo systemctl disable affichage-display.service 2>/dev/null || true
+sudo rm -f /etc/systemd/system/affichage-display.service
+sudo systemctl daemon-reload
+
 # ── Résumé ────────────────────────────────────────────────
 IP=$(hostname -I | awk '{print $1}')
 echo ""
@@ -114,7 +116,7 @@ echo "│                                             │"
 echo "│   Admin : http://$IP:8000/admin             │"
 echo "│                                             │"
 echo "│   L'affichage démarre automatiquement       │"
-echo "│   via le service systemd.                   │"
+echo "│   au boot (autologin → X11 → Chromium).     │"
 echo "│                                             │"
 echo "│   → sudo reboot                             │"
 echo "└─────────────────────────────────────────────┘"
