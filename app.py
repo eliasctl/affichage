@@ -224,6 +224,17 @@ def api_display():
                    ticker=ticker, logo=logo)
 
 
+@app.route("/api/hash")
+def api_hash():
+    """Hash léger pour détecter les changements (polling)."""
+    import hashlib
+    slides = get_slides(active_only=True)
+    ticker = get_ticker(active_only=True)
+    raw = json.dumps({"s": slides, "t": ticker}, sort_keys=True)
+    h = hashlib.md5(raw.encode()).hexdigest()
+    return jsonify(hash=h)
+
+
 # ── Auth ───────────────────────────────────────────────────
 
 @app.route("/login", methods=["GET", "POST"])

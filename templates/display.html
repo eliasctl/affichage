@@ -734,6 +734,19 @@
       setTimeout(rotateTicker, 8000);
     }
 
+    // ── Polling des changements ─────────────────────────────
+    let lastHash = null;
+    async function checkForUpdates() {
+      try {
+        const r = await fetch('/api/hash');
+        const d = await r.json();
+        if (lastHash === null) { lastHash = d.hash; }
+        else if (d.hash !== lastHash) { location.reload(); }
+      } catch(e) {}
+    }
+    checkForUpdates();
+    setInterval(checkForUpdates, 10000);
+
     // ── Visibilité ────────────────────────────────────────
     let hiddenAt = null;
     document.addEventListener('visibilitychange', () => {

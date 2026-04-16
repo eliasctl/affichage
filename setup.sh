@@ -37,7 +37,7 @@ sudo systemctl enable docker
 echo "→ Installation des dépendances d'affichage..."
 sudo apt-get install -y -q \
   chromium xserver-xorg x11-xserver-utils xinit openbox \
-  unclutter-xfixes
+  unclutter-xfixes fonts-noto-color-emoji
 
 # ── Démarrage de l'application ────────────────────────────
 echo "→ Démarrage de l'application..."
@@ -65,7 +65,9 @@ chromium \
   --disable-infobars \
   --disable-session-crashed-bubble \
   --disable-restore-session-state \
-  --disable-features=TranslateUI \
+  --disable-features=TranslateUI,Translate \
+  --disable-translate \
+  --lang=fr \
   --check-for-update-interval=31536000 \
   --disable-component-update \
   --autoplay-policy=no-user-gesture-required \
