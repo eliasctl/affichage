@@ -213,6 +213,17 @@ def display():
                            ci_name=ci_name, ticker=ticker, logo=logo)
 
 
+@app.route("/api/display")
+def api_display():
+    slides  = [enrich_slide(s) for s in get_slides(active_only=True)]
+    icons   = get_icons()
+    ci_name = get_setting("ci_name", "CIS Fontainebleau")
+    ticker  = get_ticker(active_only=True)
+    logo    = get_setting("logo", "logo-sdis.png")
+    return jsonify(slides=slides, icons=icons, ci_name=ci_name,
+                   ticker=ticker, logo=logo)
+
+
 # ── Auth ───────────────────────────────────────────────────
 
 @app.route("/login", methods=["GET", "POST"])

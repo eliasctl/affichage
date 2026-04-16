@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+export DEBIAN_FRONTEND=noninteractive
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -22,7 +23,7 @@ EOF
 
 # ── Mise à jour système ───────────────────────────────────
 echo "→ Mise à jour du système..."
-sudo apt-get update -qq && sudo apt-get full-upgrade -y -qq
+sudo apt-get update -q && sudo apt-get full-upgrade -y -q
 
 # ── Docker ────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
@@ -32,31 +33,51 @@ if ! command -v docker &>/dev/null; then
 fi
 sudo systemctl enable docker
 
-# ── Chromium + Openbox ────────────────────────────────────
-echo "→ Installation de Chromium / Openbox..."
-sudo apt-get install -y -qq chromium xorg xinit openbox unclutter
+# ── Dépendances affichage (Pygame framebuffer) ────────────
+echo "→ Installation des dépendances d'affichage..."
+sudo apt-get install -y -q python3-pygame python3-pip mpv unclutter-xfixes
 
 # ── Démarrage de l'application ────────────────────────────
 echo "→ Démarrage de l'application..."
 cd "$DIR"
 sudo docker compose up -d --build
 
-# ── Mode kiosk ────────────────────────────────────────────
-echo "→ Configuration du mode kiosk..."
-mkdir -p "$HOME/.config/openbox"
-cat > "$HOME/.config/openbox/autostart" << 'EOF'
-xset s off; xset s noblank; xset -dpms
-unclutter -idle 0.5 -root &
-chromium --noerrdialogs --disable-infobars --kiosk \
-  --disable-session-crashed-bubble http://localhost:8000 &
+# ── Service systemd pour l'affichage ──────────────────────
+echo "→ Configuration du service d'affichage..."
+sudo tee /etc/systemd/system/affichage-display.service > /dev/null << EOF
+[Unit]
+Description=Affichage SDIS (Pygame framebuffer)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=$(whoami)
+Environment=SDL_VIDEODRIVER=kmsdrm
+Environment=API_URL=http://localhost:8000/api/display
+Environment=STATIC_URL=http://localhost:8000/static
+ExecStartPre=/bin/bash -c 'while ! curl -s -o /dev/null http://localhost:8000; do sleep 2; done'
+ExecStart=/usr/bin/python3 $DIR/display_fb.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
-echo "exec openbox-session" > "$HOME/.xinitrc"
+sudo systemctl daemon-reload
+sudo systemctl enable affichage-display.service
 
-grep -q "startx" "$HOME/.bash_profile" 2>/dev/null || cat >> "$HOME/.bash_profile" << 'EOF'
+# ── Désactiver le blanking écran ──────────────────────────
+# Console blanking off
+sudo bash -c 'grep -q "consoleblank=0" /boot/firmware/cmdline.txt || sed -i "s/$/ consoleblank=0/" /boot/firmware/cmdline.txt'
 
-[ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && startx
-EOF
+# ── Cacher le curseur (pour console) ──────────────────────
+grep -q "unclutter" "$HOME/.profile" 2>/dev/null || cat >> "$HOME/.profile" << 'PROF'
+
+# Masquer curseur
+command -v unclutter-xfixes &>/dev/null && unclutter-xfixes --hide-on-touch &
+PROF
 
 # ── Autologin ─────────────────────────────────────────────
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
@@ -73,7 +94,10 @@ echo ""
 echo "┌─────────────────────────────────────────────┐"
 echo "│   Terminé !                                 │"
 echo "│                                             │"
-echo "│   Admin : http://$IP:8000/admin"
+echo "│   Admin : http://$IP:8000/admin             │"
+echo "│                                             │"
+echo "│   L'affichage démarre automatiquement       │"
+echo "│   via le service systemd.                   │"
 echo "│                                             │"
 echo "│   → sudo reboot                             │"
 echo "└─────────────────────────────────────────────┘"
