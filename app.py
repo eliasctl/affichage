@@ -166,7 +166,7 @@ def calc_duration(content, layout="annonce"):
     text = strip_html(content)
     if not text.strip():
         return 15
-    return max(15, min(120, 15 + math.ceil(len(text) / 25)))
+    return max(25, min(130, 25 + math.ceil(len(text) / 25)))
 
 
 def allowed_img(fn):
