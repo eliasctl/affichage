@@ -3,7 +3,18 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-USER="$(whoami)"
+
+# Détecter le vrai utilisateur (même si lancé avec sudo/root)
+if [ -n "$SUDO_USER" ]; then
+  REAL_USER="$SUDO_USER"
+elif [ "$(whoami)" = "root" ]; then
+  # Trouver le premier utilisateur non-root avec un home
+  REAL_USER=$(ls /home/ | head -1)
+else
+  REAL_USER="$(whoami)"
+fi
+REAL_HOME=$(eval echo "~$REAL_USER")
+echo "→ Utilisateur détecté : $REAL_USER ($REAL_HOME)"
 
 echo ""
 echo "┌─────────────────────────────────────────────┐"
@@ -39,8 +50,9 @@ python3 -m venv "$DIR/venv"
 "$DIR/venv/bin/pip" install --upgrade pip
 "$DIR/venv/bin/pip" install flask
 
-# ── Créer les dossiers ───────────────────────────────────
+# ── Créer les dossiers et fixer les permissions ───────────
 mkdir -p "$DIR/data" "$DIR/static/uploads" "$DIR/static/icons" "$DIR/static/videos"
+chown -R "$REAL_USER:$REAL_USER" "$DIR"
 
 # ── Service systemd Flask ─────────────────────────────────
 echo "→ Configuration du service Flask..."
@@ -51,7 +63,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=$USER
+User=$REAL_USER
 WorkingDirectory=$DIR
 ExecStart=$DIR/venv/bin/python $DIR/app.py
 Restart=always
@@ -99,29 +111,28 @@ KIOSK
 chmod +x "$DIR/kiosk.sh"
 
 # ── Openbox lance le kiosk au démarrage de X ──────────────
-mkdir -p "$HOME/.config/openbox"
-cat > "$HOME/.config/openbox/autostart" << EOF
-$DIR/kiosk.sh &
-EOF
+sudo -u "$REAL_USER" mkdir -p "$REAL_HOME/.config/openbox"
+echo "$DIR/kiosk.sh &" | sudo -u "$REAL_USER" tee "$REAL_HOME/.config/openbox/autostart" > /dev/null
 
 # ── Désactiver le blanking écran (console) ────────────────
 sudo bash -c 'grep -q "consoleblank=0" /boot/firmware/cmdline.txt || sed -i "s/$/ consoleblank=0/" /boot/firmware/cmdline.txt'
 
 # ── Auto-startx à la connexion sur tty1 ──────────────────
-grep -q "startx" "$HOME/.profile" 2>/dev/null || cat >> "$HOME/.profile" << 'PROF'
+grep -q "startx" "$REAL_HOME/.profile" 2>/dev/null || cat >> "$REAL_HOME/.profile" << 'PROF'
 
 # Démarrage automatique de X11 sur tty1
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
   exec startx -- -nocursor 2>/dev/null
 fi
 PROF
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.profile"
 
 # ── Autologin ─────────────────────────────────────────────
 sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
 sudo tee /etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
+ExecStart=-/sbin/agetty --autologin $REAL_USER --noclear %I \$TERM
 EOF
 sudo systemctl daemon-reload
 
