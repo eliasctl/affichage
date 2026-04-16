@@ -29,11 +29,15 @@ sudo apt-get update -q && sudo apt-get full-upgrade -y -q
 # ── Dépendances Python + affichage ────────────────────────
 echo "→ Installation des dépendances..."
 sudo apt-get install -y -q \
-  python3 python3-pip \
+  python3 python3-venv \
   chromium xserver-xorg x11-xserver-utils xinit openbox \
   unclutter-xfixes fonts-noto-color-emoji
 
-pip3 install --break-system-packages flask 2>/dev/null || pip3 install flask
+# ── Environnement virtuel Python ──────────────────────────
+echo "→ Configuration de l'environnement Python..."
+python3 -m venv "$DIR/venv"
+"$DIR/venv/bin/pip" install --upgrade pip
+"$DIR/venv/bin/pip" install flask
 
 # ── Créer les dossiers ───────────────────────────────────
 mkdir -p "$DIR/data" "$DIR/static/uploads" "$DIR/static/icons" "$DIR/static/videos"
@@ -49,7 +53,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$DIR
-ExecStart=/usr/bin/python3 $DIR/app.py
+ExecStart=$DIR/venv/bin/python $DIR/app.py
 Restart=always
 RestartSec=3
 
