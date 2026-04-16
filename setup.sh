@@ -36,7 +36,7 @@ sudo systemctl enable docker
 # ── Dépendances affichage (Chromium kiosk) ────────────────
 echo "→ Installation des dépendances d'affichage..."
 sudo apt-get install -y -q \
-  chromium-browser xserver-xorg x11-xserver-utils xinit openbox \
+  chromium xserver-xorg x11-xserver-utils xinit openbox \
   unclutter-xfixes
 
 # ── Démarrage de l'application ────────────────────────────
@@ -59,7 +59,7 @@ xset s noblank
 unclutter-xfixes --hide-on-touch &
 
 # Lancer Chromium en mode kiosk
-chromium-browser \
+chromium \
   --kiosk \
   --noerrdialogs \
   --disable-infobars \
