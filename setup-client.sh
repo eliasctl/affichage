@@ -73,6 +73,9 @@ chromium \\
   --autoplay-policy=no-user-gesture-required \\
   --start-fullscreen \\
   --incognito \\
+  --disable-low-end-device-mode \\
+  --disable-dev-shm-usage \\
+  --memory-pressure-off \\
   ${SERVER_URL}
 EOF
 chmod +x "$KIOSK_DIR/kiosk.sh"
