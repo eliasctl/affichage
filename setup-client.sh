@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────
 #  Setup écran client — Raspberry Pi Zero 2 W
-#  Installe uniquement Chromium en mode kiosk.
+#  Installe surf (navigateur WebKit ultra-léger) en kiosk.
 #  Pointe vers le serveur central.
 # ─────────────────────────────────────────────────────────
 set -e
@@ -21,7 +21,7 @@ echo "→ Utilisateur détecté : $REAL_USER ($REAL_HOME)"
 echo ""
 echo "┌─────────────────────────────────────────────┐"
 echo "│   Installation CLIENT affichage SDIS        │"
-echo "│   (Raspberry Pi Zero 2 W)                   │"
+echo "│   (Raspberry Pi Zero 2 W — surf kiosk)      │"
 echo "└─────────────────────────────────────────────┘"
 echo ""
 
@@ -35,11 +35,12 @@ echo ""
 echo "→ Mise à jour du système..."
 sudo apt-get update -q && sudo apt-get full-upgrade -y -q
 
-# ── Dépendances affichage uniquement ─────────────────────
-echo "→ Installation de Chromium et X11..."
+# ── Dépendances : surf + X11 (pas de Chromium) ──────────
+echo "→ Installation de surf et X11..."
 sudo apt-get install -y -q \
-  chromium xserver-xorg x11-xserver-utils xinit openbox \
-  unclutter-xfixes fonts-noto-color-emoji
+  surf xserver-xorg x11-xserver-utils xinit openbox \
+  unclutter-xfixes fonts-noto-color-emoji \
+  xdotool
 
 # ── Script kiosk ─────────────────────────────────────────
 KIOSK_DIR="$REAL_HOME/kiosk"
@@ -58,25 +59,20 @@ xset s noblank
 # Cacher le curseur
 unclutter-xfixes --hide-on-touch &
 
-# Lancer Chromium en mode kiosk
-chromium \\
-  --kiosk \\
-  --noerrdialogs \\
-  --disable-infobars \\
-  --disable-session-crashed-bubble \\
-  --disable-restore-session-state \\
-  --disable-features=TranslateUI,Translate \\
-  --disable-translate \\
-  --lang=fr \\
-  --check-for-update-interval=31536000 \\
-  --disable-component-update \\
-  --autoplay-policy=no-user-gesture-required \\
-  --start-fullscreen \\
-  --incognito \\
-  --disable-low-end-device-mode \\
-  --disable-dev-shm-usage \\
-  --memory-pressure-off \\
-  ${SERVER_URL}
+# Lancer surf en plein écran
+surf -F ${SERVER_URL} &
+SURF_PID=\$!
+
+# Attendre que la fenêtre surf apparaisse puis forcer le plein écran
+sleep 2
+WID=\$(xdotool search --pid \$SURF_PID 2>/dev/null | head -1)
+if [ -n "\$WID" ]; then
+  xdotool windowfocus \$WID
+  xdotool windowsize \$WID 100% 100%
+  xdotool windowmove \$WID 0 0
+fi
+
+wait \$SURF_PID
 EOF
 chmod +x "$KIOSK_DIR/kiosk.sh"
 chown -R "$REAL_USER:$REAL_USER" "$KIOSK_DIR"
@@ -112,16 +108,13 @@ sudo systemctl daemon-reload
 
 # ── Désactiver les services inutiles (économie RAM) ──────
 echo "→ Optimisation pour Pi Zero 2 W..."
-# Désactiver Bluetooth si pas utilisé
 sudo systemctl disable bluetooth 2>/dev/null || true
-# Désactiver Docker si présent
 if command -v docker &>/dev/null; then
   sudo systemctl disable docker 2>/dev/null || true
   sudo systemctl stop docker 2>/dev/null || true
 fi
 
 # ── Optimisation GPU memory split ─────────────────────────
-# Allouer plus de RAM au GPU pour le rendu Chromium
 if ! grep -q "^gpu_mem=" /boot/firmware/config.txt 2>/dev/null; then
   echo "gpu_mem=128" | sudo tee -a /boot/firmware/config.txt > /dev/null
 fi
@@ -131,10 +124,8 @@ echo ""
 echo "┌─────────────────────────────────────────────┐"
 echo "│   Client installé !                         │"
 echo "│                                             │"
-echo "│   Serveur : $SERVER_URL                     │"
-echo "│                                             │"
-echo "│   Au boot, l'écran affiche                  │"
-echo "│   automatiquement le contenu du serveur.    │"
+echo "│   Navigateur : surf (WebKit léger)          │"
+echo "│   Serveur    : $SERVER_URL                  │"
 echo "│                                             │"
 echo "│   → sudo reboot                             │"
 echo "└─────────────────────────────────────────────┘"
