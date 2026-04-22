@@ -1,8 +1,6 @@
 services:
   affichage:
     build: .
-    expose:
-      - 8000
     volumes:
       - affichage_uploads:/app/static/uploads
       - affichage_icons:/app/static/icons
