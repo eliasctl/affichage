@@ -11,8 +11,6 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-    networks:
-      - dokploy-network
     restart: unless-stopped
 
 volumes:
@@ -20,7 +18,3 @@ volumes:
   affichage_icons:
   affichage_videos:
   affichage_db:
-
-networks:
-  dokploy-network:
-    external: true
