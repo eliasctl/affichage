@@ -100,15 +100,12 @@
     Affichage SDIS
   </div>
   <div class="nav-links">
-    <a href="/admin" {% if request.path == '/admin' %}class="active"{% endif %}>Annonces</a>
-    <a href="/admin/ticker" {% if request.path == '/admin/ticker' %}class="active"{% endif %}>Bandeau</a>
-    <a href="/admin/settings" {% if request.path == '/admin/settings' %}class="active"{% endif %}>Paramètres</a>
+    <a href="/admin" <% if (currentPath === '/admin') { %>class="active"<% } %>>Annonces</a>
+    <a href="/admin/ticker" <% if (currentPath === '/admin/ticker') { %>class="active"<% } %>>Bandeau</a>
+    <a href="/admin/settings" <% if (currentPath === '/admin/settings') { %>class="active"<% } %>>Paramètres</a>
     <a href="/" target="_blank" class="ext">Écran ↗</a>
     <a href="/logout">Déconnexion</a>
   </div>
 </nav>
 
-<main>{% block content %}{% endblock %}</main>
-
-</body>
-</html>
+<main>

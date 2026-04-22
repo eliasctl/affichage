@@ -1,16 +1,12 @@
-{% extends "admin/layout.html" %}
-{% block content %}
+<%- include('_header', { currentPath: '/admin' }) %>
 
 <div class="card">
   <div class="card-title">
-    <span>Annonces ({{ slides | length }})</span>
+    <span>Annonces (<%= slides.length %>)</span>
     <a href="/admin/new" class="btn btn-primary">+ Nouvelle annonce</a>
   </div>
 
-  {% set type_colors = {'intervention': '#C0392B', 'caserne': '#1A5276', 'information': '#566573'} %}
-  {% set type_labels = {'intervention': 'Intervention', 'caserne': 'Vie de caserne', 'information': 'Information'} %}
-
-  {% if slides %}
+  <% if (slides.length) { %>
   <table id="slides-table">
     <thead>
       <tr>
@@ -22,47 +18,47 @@
       </tr>
     </thead>
     <tbody id="slides-tbody">
-    {% for s in slides %}
-    {% set stype = s.type if s.type else 'intervention' %}
-    {% set scolor = type_colors.get(stype, '#C0392B') %}
-    <tr class="{% if not s.active %}inactive{% endif %}" draggable="true" data-id="{{ s.id }}">
+    <% slides.forEach((s) => { %>
+    <% const stype = s.type || 'intervention'; %>
+    <% const scolor = SLIDE_TYPES[stype]?.color || '#C0392B'; %>
+    <tr class="<% if (!s.active) { %>inactive<% } %>" draggable="true" data-id="<%= s.id %>">
       <td class="drag-handle" title="Glisser pour réordonner">⠿</td>
       <td>
         <span style="
           display:inline-block;padding:.22rem .55rem;border-radius:4px;
           font-size:.72rem;font-weight:700;letter-spacing:.05em;white-space:nowrap;
-          background:{{ scolor }};color:#fff
-        ">{{ type_labels.get(stype, stype) }}</span>
+          background:<%= scolor %>;color:#fff
+        "><%= SLIDE_TYPES[stype]?.label || stype %></span>
       </td>
       <td>
-        <strong>{{ s.title or '(sans titre)' }}</strong>
-        {% if s.images %}
+        <strong><%= s.title || '(sans titre)' %></strong>
+        <% if (s.images && s.images.length) { %>
         <span style="font-size:.75rem;color:#bbb;margin-left:.4rem">
-          📎 {{ s.images | length }} image{{ 's' if s.images | length > 1 }}
+          📎 <%= s.images.length %> image<%= s.images.length > 1 ? 's' : '' %>
         </span>
-        {% endif %}
+        <% } %>
       </td>
       <td>
-        <span class="badge {% if s.active %}badge-on{% else %}badge-off{% endif %}">
-          {{ 'Actif' if s.active else 'Masqué' }}
+        <span class="badge <% if (s.active) { %>badge-on<% } else { %>badge-off<% } %>">
+          <%= s.active ? 'Actif' : 'Masqué' %>
         </span>
       </td>
       <td>
         <div class="actions">
-          <a href="/admin/edit/{{ s.id }}" class="btn btn-gray btn-icon" title="Modifier">✏️</a>
-          <form method="post" action="/admin/toggle/{{ s.id }}" style="display:inline">
-            <button class="btn btn-gray btn-icon" title="{{ 'Masquer' if s.active else 'Activer' }}">
-              {{ '🙈' if s.active else '👁' }}
+          <a href="/admin/edit/<%= s.id %>" class="btn btn-gray btn-icon" title="Modifier">✏️</a>
+          <form method="post" action="/admin/toggle/<%= s.id %>" style="display:inline">
+            <button class="btn btn-gray btn-icon" title="<%= s.active ? 'Masquer' : 'Activer' %>">
+              <%= s.active ? '🙈' : '👁' %>
             </button>
           </form>
-          <form method="post" action="/admin/delete/{{ s.id }}" style="display:inline"
+          <form method="post" action="/admin/delete/<%= s.id %>" style="display:inline"
                 onsubmit="return confirm('Supprimer cette annonce ?')">
             <button class="btn btn-danger btn-icon" title="Supprimer">🗑</button>
           </form>
         </div>
       </td>
     </tr>
-    {% endfor %}
+    <% }) %>
     </tbody>
   </table>
 
@@ -111,11 +107,11 @@
     });
   </script>
 
-  {% else %}
+  <% } else { %>
   <p style="color:#aaa;text-align:center;padding:2rem 0">
     Aucune annonce — <a href="/admin/new" style="color:#C0392B">créer la première</a>
   </p>
-  {% endif %}
+  <% } %>
 </div>
 
-{% endblock %}
+<%- include('_footer') %>

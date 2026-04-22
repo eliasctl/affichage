@@ -1,56 +1,55 @@
-{% extends "admin/layout.html" %}
-{% block content %}
+<%- include('_header', { currentPath: '/admin' }) %>
 
 <div class="card">
   <div class="card-title">
-    <span>{{ 'Modifier' if slide else 'Nouvelle annonce' }}</span>
+    <span><%= slide ? 'Modifier' : 'Nouvelle annonce' %></span>
     <a href="/admin" class="btn btn-gray">← Retour</a>
   </div>
 
   <form method="post" enctype="multipart/form-data" id="main-form">
 
-    {# ── Type (couleur) ── #}
+    <%# ── Type (couleur) ── %>
     <div class="form-group">
       <label>Type d'information</label>
       <div class="type-selector">
-        {% for key, meta in slide_types.items() %}
+        <% Object.entries(SLIDE_TYPES).forEach(([key, meta]) => { %>
         <label class="type-option">
-          <input type="radio" name="type" value="{{ key }}"
-                 {% if (slide and slide.type == key) or (not slide and key == 'intervention') %}checked{% endif %}>
-          <span style="--c:{{ meta.color }}">{{ meta.label }}</span>
+          <input type="radio" name="type" value="<%= key %>"
+                 <% if ((slide && slide.type === key) || (!slide && key === 'intervention')) { %>checked<% } %>>
+          <span style="--c:<%= meta.color %>"><%= meta.label %></span>
         </label>
-        {% endfor %}
+        <% }) %>
       </div>
     </div>
 
-    {# ── Layout ── #}
+    <%# ── Layout ── %>
     <div class="form-group">
       <label>Modèle d'affichage</label>
       <div class="layout-selector">
-        {% for key, label in slide_layouts.items() %}
+        <% Object.entries(SLIDE_LAYOUTS).forEach(([key, label]) => { %>
         <label class="layout-option">
-          <input type="radio" name="layout" value="{{ key }}" id="layout-{{ key }}"
-                 {% if (slide and slide.layout == key) or (not slide and key == 'annonce') %}checked{% endif %}>
+          <input type="radio" name="layout" value="<%= key %>" id="layout-<%= key %>"
+                 <% if ((slide && slide.layout === key) || (!slide && key === 'annonce')) { %>checked<% } %>>
           <span>
-            <span class="layout-ico">{{ {'annonce':'📝','photo':'🖼️','countdown':'⏳','stats':'📊','video':'🎬','meteo':'🌤️'}[key] }}</span>
-            {{ label }}
+            <span class="layout-ico"><%= ({'annonce':'📝','photo':'🖼️','countdown':'⏳','stats':'📊','video':'🎬','meteo':'🌤️'})[key] %></span>
+            <%= label %>
           </span>
         </label>
-        {% endfor %}
+        <% }) %>
       </div>
     </div>
 
-    {# ── Titre ── #}
+    <%# ── Titre ── %>
     <div class="form-group">
       <label for="title">Titre *</label>
       <input type="text" id="title" name="title" required
-             value="{{ slide.title if slide else '' }}"
+             value="<%= slide ? slide.title : '' %>"
              placeholder="Titre affiché dans le bandeau">
     </div>
 
-    {# ══ Champs par layout ══ #}
+    <%# ══ Champs par layout ══ %>
 
-    {# ── annonce / countdown : texte riche ── #}
+    <%# ── annonce / countdown : texte riche ── %>
     <div class="extra-section" id="sec-text">
       <div class="form-group">
         <label>Texte</label>
@@ -62,13 +61,13 @@
           <button type="button" data-cmd="removeFormat" title="Effacer le format">✕</button>
         </div>
         <div id="editor" contenteditable="true" class="editor"
-             >{% if slide and slide.content %}{{ slide.content | safe }}{% endif %}</div>
+             ><% if (slide && slide.content) { %><%- slide.content %><% } %></div>
         <input type="hidden" name="content" id="content-hidden">
         <p class="hint">Durée calculée automatiquement selon la longueur du texte.</p>
       </div>
     </div>
 
-    {# ── photo : légende ── #}
+    <%# ── photo : légende ── %>
     <div class="extra-section" id="sec-photo-caption" style="display:none">
       <div class="form-group">
         <label for="photo-cap">Légende (optionnelle)</label>
@@ -77,81 +76,81 @@
       </div>
     </div>
 
-    {# ── countdown : date cible ── #}
+    <%# ── countdown : date cible ── %>
     <div class="extra-section" id="sec-countdown" style="display:none">
       <div class="form-group">
         <label for="cd_target">Date et heure cible *</label>
         <input type="datetime-local" id="cd_target" name="cd_target"
-               value="{{ slide.extra.get('target','') if slide else '' }}">
+               value="<%= slide ? (slide.extra?.target || '') : '' %>">
         <p class="hint">Le compte à rebours s'affiche jusqu'à cette date/heure.</p>
       </div>
     </div>
 
-    {# ── stats : items ── #}
+    <%# ── stats : items ── %>
     <div class="extra-section" id="sec-stats" style="display:none">
       <div class="form-group">
         <label>Statistiques</label>
         <div id="stats-list">
-          {# Rempli par JS depuis slide.extra.items ou vide #}
+          <%# Rempli par JS depuis slide.extra.items ou vide %>
         </div>
         <button type="button" class="btn btn-gray" id="btn-add-stat" style="margin-top:.5rem">+ Ajouter une stat</button>
-        <input type="hidden" id="stats-json" name="stats_json" value="{{ slide.extra.get('items', []) | tojson if slide else '[]' }}">
+        <input type="hidden" id="stats-json" name="stats_json" value="<%- slide ? JSON.stringify(slide.extra?.items || []) : '[]' %>">
         <p class="hint">Emoji + chiffre + libellé. Ordre = ordre d'affichage.</p>
       </div>
     </div>
 
-    {# ── video : upload ── #}
+    <%# ── video : upload ── %>
     <div class="extra-section" id="sec-video" style="display:none">
       <div class="form-group">
         <label>Fichier vidéo</label>
-        {% if slide and slide.layout == 'video' and slide.extra.get('filename') %}
+        <% if (slide && slide.layout === 'video' && slide.extra?.filename) { %>
         <p style="font-size:.82rem;color:#888;margin-bottom:.4rem">
-          Actuel : <strong>{{ slide.extra.filename }}</strong>
+          Actuel : <strong><%= slide.extra.filename %></strong>
         </p>
-        {% endif %}
+        <% } %>
         <input type="file" name="video_file" accept="video/mp4,video/webm">
         <p class="hint">MP4 ou WebM — la durée du slide s'adapte automatiquement à la vidéo.</p>
       </div>
     </div>
 
-    {# ── meteo ── #}
+    <%# ── meteo ── %>
     <div class="extra-section" id="sec-meteo" style="display:none">
       <div class="form-group">
         <label for="meteo_search">Ville</label>
         <div style="position:relative">
           <input type="text" id="meteo_search" autocomplete="off"
                  placeholder="Rechercher une ville…"
-                 value="{{ slide.extra.get('city','') if slide else '' }}">
+                 value="<%= slide ? (slide.extra?.city || '') : '' %>">
           <div id="meteo_suggestions"></div>
         </div>
-        <input type="hidden" id="meteo_city" name="meteo_city" value="{{ slide.extra.get('city','') if slide else '' }}">
-        <input type="hidden" id="meteo_lat"  name="meteo_lat"  value="{{ slide.extra.get('lat','') if slide else '' }}">
-        <input type="hidden" id="meteo_lon"  name="meteo_lon"  value="{{ slide.extra.get('lon','') if slide else '' }}">
-        <p class="hint" id="meteo_confirm">{% if slide and slide.extra.get('lat') %}📍 {{ slide.extra.get('city','') }} ({{ slide.extra.get('lat','') }}, {{ slide.extra.get('lon','') }}){% endif %}</p>
+        <input type="hidden" id="meteo_city" name="meteo_city" value="<%= slide ? (slide.extra?.city || '') : '' %>">
+        <input type="hidden" id="meteo_lat"  name="meteo_lat"  value="<%= slide ? (slide.extra?.lat || '') : '' %>">
+        <input type="hidden" id="meteo_lon"  name="meteo_lon"  value="<%= slide ? (slide.extra?.lon || '') : '' %>">
+        <p class="hint" id="meteo_confirm"><% if (slide && slide.extra?.lat) { %>📍 <%= slide.extra?.city || '' %> (<%= slide.extra?.lat || '' %>, <%= slide.extra?.lon || '' %>)<% } %></p>
         <p class="hint">Données open-meteo.com — rafraîchies toutes les 10 min.</p>
       </div>
     </div>
 
-    {# ── Images (annonce / countdown / photo) ── #}
+    <%# ── Images (annonce / countdown / photo) ── %>
     <div class="extra-section" id="sec-images">
-      {% if slide and slide.images %}
+      <% if (slide && slide.images && slide.images.length) { %>
       <div class="form-group">
         <label>Images actuelles</label>
         <div style="display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.4rem">
-          {% for img in slide.images %}
+          <% slide.images.forEach((img) => { %>
           <div>
-            <img src="/static/uploads/{{ img }}"
+            <img src="/static/uploads/<%= img %>"
                  style="height:90px;border-radius:6px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.12)">
             <label style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;margin-top:.3rem;cursor:pointer">
-              <input type="checkbox" name="delete_img" value="{{ img }}"> Supprimer
+              <input type="checkbox" name="delete_img" value="<%= img %>"> Supprimer
             </label>
           </div>
-          {% endfor %}
+          <% }) %>
         </div>
       </div>
-      {% endif %}
+      <% } %>
       <div class="form-group">
-        <label>{{ 'Ajouter des images' if slide and slide.images else 'Images (optionnel)' }}</label>
+        <label><%= (slide && slide.images && slide.images.length) ? 'Ajouter des images' : 'Images (optionnel)' %></label>
         <input type="file" id="images" name="images" accept="image/*" multiple>
         <div id="preview" style="display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.6rem"></div>
       </div>
@@ -159,7 +158,7 @@
 
     <div style="display:flex;gap:.7rem;margin-top:1.4rem">
       <button type="submit" class="btn btn-primary">
-        {{ '💾 Enregistrer' if slide else '✅ Créer' }}
+        <%= slide ? '💾 Enregistrer' : '✅ Créer' %>
       </button>
       <a href="/admin" class="btn btn-gray">Annuler</a>
     </div>
@@ -373,4 +372,4 @@
   document.getElementById('main-form').addEventListener('submit', syncHidden);
 </script>
 
-{% endblock %}
+<%- include('_footer') %>

@@ -13,12 +13,12 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
-    {% if ticker %}body { height: calc(100vh - 108px); }{% endif %}
+    <% if (ticker) { %>body { height: calc(100vh - 108px); }<% } %>
 
     /* ── Slide ─────────────────────────────────────────── */
     .slide {
       position: absolute; top: 0; left: 0; right: 0;
-      bottom: {% if ticker %}108px{% else %}0{% endif %};
+      bottom: <% if (ticker) { %>108px<% } else { %>0<% } %>;
       background: #fff;
       display: flex; flex-direction: column;
       opacity: 0; transition: opacity .9s ease;
@@ -82,7 +82,7 @@
 
     /* ── Barre de progression ───────────────────────────── */
     #progress {
-      position: fixed; bottom: {% if ticker %}108px{% else %}0{% endif %};
+      position: fixed; bottom: <% if (ticker) { %>108px<% } else { %>0<% } %>;
       left: 0; height: 4px; width: 0%; z-index: 10;
     }
 
@@ -182,7 +182,7 @@
     }
     .s-video video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* ── LAYOUT : meteo ────────────���────────────────────── */
+    /* ── LAYOUT : meteo ─────────────────────────────────── */
     .s-meteo {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
@@ -220,7 +220,7 @@
     .fc-emoji { font-size: clamp(1.8rem,3.2vw,2.8rem); line-height: 1; }
     .fc-temp  { font-size: clamp(1.2rem,2vw,1.7rem); font-weight: 800; color: #1a1a1a; }
     .fc-precip{ font-size: clamp(.85rem,1.3vw,1.1rem); color: #6ab0e8; font-weight: 600; }
-    /* Pr��visions journalières (5 jours) */
+    /* Prévisions journalières (5 jours) */
     .meteo-daily {
       display: flex; gap: 1.5vw; flex-shrink: 0;
     }
@@ -287,71 +287,71 @@
 </head>
 <body>
 
-{% if slides %}
+<% if (slides.length) { %>
 
-  {% for slide in slides %}
-  {% set layout = slide.layout or 'annonce' %}
-  <div class="slide{% if loop.first %} active{% endif %}"
-       data-dur="{{ slide.duration }}"
-       data-layout="{{ layout }}"
-       data-color="{{ slide.color }}">
+  <% slides.forEach((slide, _i) => { %>
+  <% const layout = slide.layout || 'annonce'; %>
+  <div class="slide<%= _i === 0 ? ' active' : '' %>"
+       data-dur="<%= slide.duration %>"
+       data-layout="<%= layout %>"
+       data-color="<%= slide.color %>">
 
-    {# ── Header (commun) ── #}
-    <div class="s-head" style="background:{{ slide.color }}">
-      <img class="logo" src="/static/{{ logo }}" alt="SDIS"
+    <%# ── Header (commun) ── %>
+    <div class="s-head" style="background:<%= slide.color %>">
+      <img class="logo" src="/static/<%= logo %>" alt="SDIS"
            onerror="this.style.display='none';this.nextSibling.style.display='none'">
       <div class="sep"></div>
-      <h1>{{ slide.title }}</h1>
-      <span class="type-badge">{{ slide.type_label }}</span>
+      <h1><%= slide.title %></h1>
+      <span class="type-badge"><%= slide.type_label %></span>
       <span class="head-clock clock"></span>
     </div>
 
-    {# ── Body selon layout ── #}
+    <%# ── Body selon layout ── %>
     <div class="s-body">
 
-      {# Icônes spécialités #}
-      {% if icons %}
+      <%# Icônes spécialités %>
+      <% if (icons) { %>
       <div class="s-icons">
-        {% for icon in icons %}
+        <% icons.forEach((icon, _i) => { %>
         <div class="icon-item">
-          <img src="/static/icons/{{ icon.filename }}" alt="{{ icon.label }}">
-          {% if icon.label %}<span>{{ icon.label }}</span>{% endif %}
+          <img src="/static/icons/<%= icon.filename %>" alt="<%= icon.label %>">
+          <% if (icon.label) { %><span><%= icon.label %></span><% } %>
         </div>
-        {% endfor %}
+        <% }) %>
       </div>
-      {% endif %}
+      <% } %>
 
-      {# ─── ANNONCE ─── #}
-      {% if layout == 'annonce' %}
-      <div class="s-main{% if not slide.images %} no-img{% endif %}">
-        {% if slide.images %}
+      <%# ─── ANNONCE ─── %>
+      <% if (layout == 'annonce') { %>
+      <div class="s-main<%= !slide.images.length ? ' no-img' : '' %>">
+        <% if (slide.images.length) { %>
         <div class="s-images">
-          {% for img in slide.images %}<img src="/static/uploads/{{ img }}" alt="">{% endfor %}
+          <% slide.images.forEach((img, _i) => { %><img src="/static/uploads/<%= img %>" alt=""><% }) %>
         </div>
-        {% endif %}
-        <div class="s-text{% if not slide.images %} centered{% endif %}">
+        <% } %>
+        <div class="s-text<%= !slide.images.length ? ' centered' : '' %>">
           <p></p>
-          <template>{{ slide.content | safe }}</template>
+          <template><%- slide.content %></template>
         </div>
       </div>
 
-      {# ─── PHOTO ─── #}
-      {% elif layout == 'photo' %}
+      <%# ─── PHOTO ─── %>
+      <% } else if (layout == 'photo') { %>
       <div class="s-photo">
-        {% if slide.images %}
-        <img src="/static/uploads/{{ slide.images[0] }}" alt="">
-        {% endif %}
-        {% if slide.content %}
-        <div class="s-photo-caption">{{ slide.content | safe }}</div>
-        {% endif %}
+        <% if (slide.images.length) { %>
+        <img src="/static/uploads/<%= slide.images[0] %>" alt="">
+        <% } %>
+        <% if (slide.content) { %>
+        <div class="s-photo-caption"><%- slide.content %></div>
+        <% } %>
       </div>
 
-      {# ─── COUNTDOWN ─── #}
-      {% elif layout == 'countdown' %}
-      {% set has_side = slide.images or slide.content %}
-      <div class="s-countdown{% if has_side %} has-side{% endif %}">
+      <%# ─── COUNTDOWN ─── %>
+      <% } else if (layout == 'countdown') { %>
+      <% const has_side = slide.images.length || slide.content; %>
+      <div class="s-countdown<%= has_side ? ' has-side' : '' %>">
         <div class="cd-timer-wrap">
-          <div class="cd-timer" data-target="{{ slide.extra.get('target','') }}">
+          <div class="cd-timer" data-target="<%= (slide.extra?.target || '') %>">
             <div class="cd-unit"><span class="cd-val" data-unit="d">—</span><span class="cd-lbl">jours</span></div>
             <div class="cd-sep">:</div>
             <div class="cd-unit"><span class="cd-val" data-unit="h">—</span><span class="cd-lbl">h</span></div>
@@ -360,108 +360,108 @@
             <div class="cd-sep">:</div>
             <div class="cd-unit"><span class="cd-val" data-unit="s">—</span><span class="cd-lbl">sec</span></div>
           </div>
-          {% if slide.extra.get('target') %}
-          <div class="cd-event">{{ slide.title }}</div>
-          {% endif %}
+          <% if (slide.extra?.target) { %>
+          <div class="cd-event"><%= slide.title %></div>
+          <% } %>
         </div>
-        {% if has_side %}
+        <% if (has_side) { %>
         <div class="cd-side">
-          {% if slide.images %}
+          <% if (slide.images.length) { %>
           <div class="s-images">
-            {% for img in slide.images %}<img src="/static/uploads/{{ img }}" alt="">{% endfor %}
+            <% slide.images.forEach((img, _i) => { %><img src="/static/uploads/<%= img %>" alt=""><% }) %>
           </div>
-          {% endif %}
-          {% if slide.content %}
+          <% } %>
+          <% if (slide.content) { %>
           <div class="s-text">
             <p></p>
-            <template>{{ slide.content | safe }}</template>
+            <template><%- slide.content %></template>
           </div>
-          {% endif %}
+          <% } %>
         </div>
-        {% endif %}
+        <% } %>
       </div>
 
-      {# ─── STATS ─── #}
-      {% elif layout == 'stats' %}
+      <%# ─── STATS ─── %>
+      <% } else if (layout == 'stats') { %>
       <div class="s-stats">
-        {% for item in slide.extra.get('items', []) %}
-        <div class="stat-card" style="animation-delay: {{ loop.index0 * 0.1 }}s">
-          <div class="stat-emoji">{{ item.get('emoji', '📊') }}</div>
-          <div class="stat-val" data-target="{{ item.get('value', '0') | string | replace(',','') }}">0</div>
-          <div class="stat-lbl">{{ item.get('label', '') }}</div>
+        <% (slide.extra?.items || []).forEach((item, _i) => { %>
+        <div class="stat-card" style="animation-delay: <%= _i * 0.1 %>s">
+          <div class="stat-emoji"><%= item.emoji || '📊' %></div>
+          <div class="stat-val" data-target="<%= String(item.value || '0').replace(/,/g, '') %>">0</div>
+          <div class="stat-lbl"><%= item.label || '' %></div>
         </div>
-        {% endfor %}
+        <% }) %>
       </div>
 
-      {# ─── VIDEO ─── #}
-      {% elif layout == 'video' %}
-      {% set vf = slide.extra.get('filename', '') %}
+      <%# ─── VIDEO ─── %>
+      <% } else if (layout == 'video') { %>
+      <% const vf = (slide.extra?.filename || ''); %>
       <div class="s-video">
-        {% if vf %}
-        <video muted playsinline data-slide-id="{{ slide.id }}">
-          <source src="/static/videos/{{ vf }}" type="video/mp4">
+        <% if (vf) { %>
+        <video muted playsinline data-slide-id="<%= slide.id %>">
+          <source src="/static/videos/<%= vf %>" type="video/mp4">
         </video>
-        {% endif %}
+        <% } %>
       </div>
 
-      {# ─── METEO ─── #}
-      {% elif layout == 'meteo' %}
+      <%# ─── METEO ─── %>
+      <% } else if (layout == 'meteo') { %>
       <div class="s-meteo">
-        {% set w = slide.weather %}
-        {% if w %}
+        <% const w = slide.weather; %>
+        <% if (w) { %>
         <div class="meteo-top">
           <div class="meteo-now">
-            <div class="meteo-emoji">{{ w.emoji }}</div>
+            <div class="meteo-emoji"><%= w.emoji %></div>
             <div class="meteo-temps">
-              <div class="meteo-temp">{{ w.temp }}°</div>
-              <div class="meteo-feels">Ressenti {{ w.feels }}°C</div>
+              <div class="meteo-temp"><%= w.temp %>°</div>
+              <div class="meteo-feels">Ressenti <%= w.feels %>°C</div>
             </div>
           </div>
           <div class="meteo-info">
-            <div class="meteo-desc">{{ w.desc }}</div>
-            <div class="meteo-row"><span class="ico">💨</span> {{ w.wind }} km/h {{ w.wind_dir }}</div>
-            <div class="meteo-row"><span class="ico">💧</span> {{ w.humidity }}% humidité</div>
-            {% if slide.extra.get('city') %}
-            <div class="meteo-row"><span class="ico">📍</span> {{ slide.extra.city }}</div>
-            {% endif %}
+            <div class="meteo-desc"><%= w.desc %></div>
+            <div class="meteo-row"><span class="ico">💨</span> <%= w.wind %> km/h <%= w.wind_dir %></div>
+            <div class="meteo-row"><span class="ico">💧</span> <%= w.humidity %>% humidité</div>
+            <% if (slide.extra?.city) { %>
+            <div class="meteo-row"><span class="ico">📍</span> <%= slide.extra.city %></div>
+            <% } %>
           </div>
         </div>
-        {% if w.daily %}
+        <% if (w.daily) { %>
         <div class="meteo-daily">
-          {% for d in w.daily %}
+          <% w.daily.forEach((d, _i) => { %>
           <div class="daily-card">
-            <div class="daily-day">{{ d.day }}</div>
-            <div class="daily-emoji">{{ d.emoji }}</div>
+            <div class="daily-day"><%= d.day %></div>
+            <div class="daily-emoji"><%= d.emoji %></div>
             <div class="daily-temps">
-              <span class="daily-tmax">{{ d.tmax }}°</span>
-              <span class="daily-tmin">{{ d.tmin }}°</span>
+              <span class="daily-tmax"><%= d.tmax %>°</span>
+              <span class="daily-tmin"><%= d.tmin %>°</span>
             </div>
-            {% if d.precip > 0 %}<div class="daily-precip">💧 {{ d.precip }}%</div>{% endif %}
+            <% if (d.precip > 0) { %><div class="daily-precip">💧 <%= d.precip %>%</div><% } %>
           </div>
-          {% endfor %}
+          <% }) %>
         </div>
-        {% endif %}
-        {% else %}
+        <% } %>
+        <% } else { %>
         <div class="meteo-unavail">Données météo indisponibles</div>
-        {% endif %}
+        <% } %>
       </div>
 
-      {% endif %}
-    </div>{# /s-body #}
+      <% } %>
+    </div><%# /s-body %>
 
 
   </div>
-  {% endfor %}
+  <% }) %>
 
   <div id="progress" style="background: var(--slide-color, #C0392B)"></div>
 
-  {# ── Ticker ── #}
-  {% if ticker %}
+  <%# ── Ticker ── %>
+  <% if (ticker) { %>
   <div id="ticker">
     <div class="ticker-tag">⚡ Infos</div>
-    <div class="ticker-msg" id="ticker-msg">{{ ticker[0].text if ticker }}</div>
+    <div class="ticker-msg" id="ticker-msg"><%= ticker.length ? ticker[0].text : '' %></div>
   </div>
-  {% endif %}
+  <% } %>
 
   <script>
     const LITE = new URLSearchParams(location.search).has('lite');
@@ -744,7 +744,7 @@
     updateClock(); setInterval(updateClock, 15000);
 
     // ── Ticker ────────────────────────────────────────────
-    const tickerItems = {{ ticker | tojson }};
+    const tickerItems = <%- JSON.stringify(ticker) %>;
     const tickerEl    = document.getElementById('ticker-msg');
     let tickerIdx = 0;
     if (tickerEl && tickerItems.length > 1) {
@@ -786,7 +786,7 @@
     });
   </script>
 
-{% else %}
+<% } else { %>
   <div class="empty">Aucune annonce active</div>
   <script>
     let lastHash = null;
@@ -801,7 +801,7 @@
     checkForUpdates();
     setInterval(checkForUpdates, 10000);
   </script>
-{% endif %}
+<% } %>
 
 </body>
 </html>

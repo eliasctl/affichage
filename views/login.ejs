@@ -50,7 +50,7 @@
     <p>CIS Fontainebleau</p>
     <form method="post">
       <input type="password" name="password" placeholder="Mot de passe" autofocus required>
-      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
       <button type="submit">Connexion</button>
     </form>
   </div>

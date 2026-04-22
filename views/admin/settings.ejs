@@ -1,7 +1,6 @@
-{% extends "admin/layout.html" %}
-{% block content %}
+<%- include('_header', { currentPath: '/admin/settings' }) %>
 
-{# ── Nom du CI ──#}
+<%# ── Nom du CI ── %>
 <div class="card">
   <div class="card-title">Informations du centre</div>
   <form method="post">
@@ -9,18 +8,18 @@
     <div class="form-group">
       <label for="ci_name">Nom du CIS affiché en pied de page</label>
       <input type="text" id="ci_name" name="ci_name"
-             value="{{ ci_name }}" placeholder="Ex : CIS Fontainebleau">
+             value="<%= ci_name %>" placeholder="Ex : CIS Fontainebleau">
     </div>
     <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
   </form>
 </div>
 
-{# ── Logo ──#}
+<%# ── Logo ── %>
 <div class="card">
   <div class="card-title">Logo</div>
   <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
     <input type="hidden" name="action" value="save_logo">
-    <img id="logo-preview" src="/static/{{ logo }}" alt="Logo actuel"
+    <img id="logo-preview" src="/static/<%= logo %>" alt="Logo actuel"
          style="height:64px;object-fit:contain;background:#f5f5f5;border-radius:6px;padding:6px;border:1.5px solid #eee">
     <div style="flex:1;min-width:200px">
       <label for="logo_file">Remplacer le logo</label>
@@ -33,7 +32,7 @@
   </form>
 </div>
 
-{# ── Icônes ──#}
+<%# ── Icônes ── %>
 <div class="card">
   <div class="card-title">
     <span>Icônes de spécialités</span>
@@ -42,8 +41,8 @@
     </span>
   </div>
 
-  {# Icônes existantes #}
-  {% if icons %}
+  <%# Icônes existantes %>
+  <% if (icons && icons.length) { %>
   <table style="margin-bottom:1.5rem">
     <thead>
       <tr>
@@ -54,25 +53,25 @@
       </tr>
     </thead>
     <tbody>
-    {% for icon in icons %}
+    <% icons.forEach((icon) => { %>
     <tr>
       <td>
-        <img src="/static/icons/{{ icon.filename }}"
+        <img src="/static/icons/<%= icon.filename %>"
              style="height:44px;width:44px;object-fit:contain;border-radius:4px;background:#f5f5f5;padding:2px">
       </td>
-      <td><strong>{{ icon.label or '—' }}</strong>
-          <span style="font-size:.75rem;color:#ccc;display:block">{{ icon.filename }}</span>
+      <td><strong><%= icon.label || '—' %></strong>
+          <span style="font-size:.75rem;color:#ccc;display:block"><%= icon.filename %></span>
       </td>
       <td>
         <div class="actions">
           <form method="post" style="display:inline">
             <input type="hidden" name="action" value="move_icon_up">
-            <input type="hidden" name="icon_id" value="{{ icon.id }}">
+            <input type="hidden" name="icon_id" value="<%= icon.id %>">
             <button class="btn btn-gray btn-icon" title="Remonter">↑</button>
           </form>
           <form method="post" style="display:inline">
             <input type="hidden" name="action" value="move_icon_down">
-            <input type="hidden" name="icon_id" value="{{ icon.id }}">
+            <input type="hidden" name="icon_id" value="<%= icon.id %>">
             <button class="btn btn-gray btn-icon" title="Descendre">↓</button>
           </form>
         </div>
@@ -81,21 +80,21 @@
         <form method="post" style="display:inline"
               onsubmit="return confirm('Supprimer cette icône ?')">
           <input type="hidden" name="action" value="delete_icon">
-          <input type="hidden" name="icon_id" value="{{ icon.id }}">
+          <input type="hidden" name="icon_id" value="<%= icon.id %>">
           <button class="btn btn-danger btn-icon">🗑</button>
         </form>
       </td>
     </tr>
-    {% endfor %}
+    <% }) %>
     </tbody>
   </table>
-  {% else %}
+  <% } else { %>
   <p style="color:#ccc;font-size:.9rem;margin-bottom:1.2rem">
     Aucune icône — ajoute des écussons de spécialités ci-dessous.
   </p>
-  {% endif %}
+  <% } %>
 
-  {# Ajouter une icône #}
+  <%# Ajouter une icône %>
   <form method="post" enctype="multipart/form-data"
         style="background:#fafafa;border:1.5px dashed #e0e0e0;border-radius:8px;padding:1.1rem">
     <input type="hidden" name="action" value="add_icon">
@@ -116,7 +115,7 @@
       </button>
     </div>
 
-    {# Prévisualisation #}
+    <%# Prévisualisation %>
     <div id="icon-preview" style="margin-top:.7rem"></div>
   </form>
 </div>
@@ -139,4 +138,4 @@
   });
 </script>
 
-{% endblock %}
+<%- include('_footer') %>

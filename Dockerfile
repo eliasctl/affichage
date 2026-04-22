@@ -1,20 +1,24 @@
-FROM python:3.12-alpine
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apk add --no-cache python3 make g++
 
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 
 RUN mkdir -p static/uploads static/icons static/videos data
-
-# Déclarer les volumes persistants
-# VOLUME ["/app/static/uploads", "/app/static/icons", "/app/static/videos", "/app/data"]
 
 EXPOSE 8000
 
 HEALTHCHECK --interval=60s --timeout=3s --retries=2 \
   CMD wget -q --spider http://localhost:8000/api/hash || exit 1
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--timeout", "120", "--preload", "app:app"]
+CMD ["node", "app.js"]
