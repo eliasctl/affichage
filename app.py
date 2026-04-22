@@ -21,6 +21,7 @@ from database import (
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
+init_db()
 
 
 # ── Compression gzip ─────────────────────────────────────────
@@ -454,5 +455,4 @@ def admin_ticker():
 # ── Lancement ──────────────────────────────────────────────
 
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=8000, debug=False)

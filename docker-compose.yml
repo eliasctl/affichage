@@ -1,13 +1,18 @@
 services:
   affichage:
     build: .
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
+    expose:
+      - 8000
     volumes:
       - affichage_uploads:/app/static/uploads
       - affichage_icons:/app/static/icons
       - affichage_videos:/app/static/videos
       - affichage_db:/app/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     restart: unless-stopped
 
 volumes:

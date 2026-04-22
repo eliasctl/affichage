@@ -272,6 +272,17 @@
       display: flex; align-items: center; justify-content: center;
       height: 100vh; color: #bbb; font-size: 1.5rem;
     }
+
+    /* ── Mode lite (Pi Zero 2 W) : pas d'animations ───── */
+    body.lite *, body.lite *::before, body.lite *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    body.lite .slide       { opacity: 0; }
+    body.lite .slide.active{ opacity: 1; }
+    body.lite .tw-cursor   { display: none; }
+    body.lite .s-images img{ box-shadow: none; }
+    body.lite .s-photo-caption { background: rgba(0,0,0,.6); }
   </style>
 </head>
 <body>
@@ -453,6 +464,9 @@
   {% endif %}
 
   <script>
+    const LITE = new URLSearchParams(location.search).has('lite');
+    if (LITE) document.body.classList.add('lite');
+
     const slides   = document.querySelectorAll('.slide');
     const progress = document.getElementById('progress');
     let cur = 0, mainTimer, countdownInterval, twGen = 0;
@@ -547,7 +561,9 @@
     function startTypewriter(slide, dur) {
       const p    = slide.querySelector('.s-text p');
       const tmpl = slide.querySelector('.s-text template');
-      if (p && tmpl) typewriteHTML(p, tmpl.innerHTML, dur);
+      if (!p || !tmpl) return;
+      if (LITE) { p.innerHTML = tmpl.innerHTML; return; }
+      typewriteHTML(p, tmpl.innerHTML, dur);
     }
 
     // ── Countdown ─────────────────────────────────────────
@@ -608,6 +624,7 @@
     function startStats(slide) {
       slide.querySelectorAll('.stat-val').forEach(el => {
         const target = parseInt(el.dataset.target) || 0;
+        if (LITE) { el.textContent = target; return; }
         const dur = 1800, start = Date.now();
         function tick() {
           const p = Math.min((Date.now()-start)/dur, 1);
@@ -668,9 +685,14 @@
 
     // ── Afficher un slide ─────────────────────────────────
     function show(idx) {
-      slides[cur].classList.remove('active');
-      slides[cur].classList.add('prev');
-      setTimeout(() => slides[cur].classList.remove('prev'), 1000);
+      const old = cur;
+      slides[old].classList.remove('active');
+      if (LITE) {
+        // Pas de transition prev→fade en mode lite
+      } else {
+        slides[old].classList.add('prev');
+        setTimeout(() => slides[old].classList.remove('prev'), 1000);
+      }
 
       cur = idx;
       const slide = slides[cur];

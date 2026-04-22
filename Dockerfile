@@ -14,4 +14,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=60s --timeout=3s --retries=2 \
   CMD wget -q --spider http://localhost:8000/api/hash || exit 1
 
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--timeout", "120", "--preload", "app:app"]

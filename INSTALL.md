@@ -38,14 +38,36 @@ Le script installe Python, Flask, crée le service systemd et démarre l'API sur
 ```bash
 git clone <URL_DU_DEPOT> ~/affichage
 cd ~/affichage
-# Créer config.py manuellement :
-cat > config.py << 'EOF'
-SECRET_KEY     = "CHANGEZ_MOI_48_CHARS_ALEATOIRES"
-ADMIN_PASSWORD = "votre_mot_de_passe"
+
+# Configurer les variables d'environnement :
+cat > .env << 'EOF'
+SECRET_KEY=CHANGEZ_MOI_48_CHARS_ALEATOIRES
+ADMIN_PASSWORD=votre_mot_de_passe
 EOF
 
 docker compose up -d
 ```
+
+### Option C — Dokploy (avec nom de domaine + HTTPS)
+
+1. Dans Dokploy, créer un nouveau projet puis un service **Compose**.
+
+2. Source : connecter le dépot Git (GitHub, GitLab, etc.) ou coller le contenu du `docker-compose.yml`.
+
+3. Dans l'onglet **Environment**, ajouter :
+   ```
+   SECRET_KEY=une_cle_secrete_longue_et_aleatoire
+   ADMIN_PASSWORD=votre_mot_de_passe_admin
+   ```
+
+4. Dans l'onglet **Domains**, ajouter le domaine souhaité :
+   - Hostname : `affichage.exemple.fr`
+   - Port : `8000`
+   - HTTPS : activé (Let's Encrypt automatique)
+
+5. Déployer. Dokploy gère le reverse proxy (Traefik) et le certificat SSL.
+
+6. Accéder à l'admin : `https://affichage.exemple.fr/admin`
 
 ### Vérification
 
@@ -53,6 +75,8 @@ Depuis n'importe quel navigateur sur le réseau :
 
 ```
 http://<IP_SERVEUR>:8000/admin
+# ou avec Dokploy :
+https://affichage.exemple.fr/admin
 ```
 
 ---
@@ -66,36 +90,44 @@ http://<IP_SERVEUR>:8000/admin
 - Adaptateur mini-HDMI → HDMI
 - Alimentation 5V 2A
 
-### Étape 1 — Flasher la carte SD
+### Étape 1 — Flasher DietPi
 
-Avec **[Raspberry Pi Imager](https://www.raspberrypi.com/software/)** :
+Télécharger l'image **[DietPi pour Raspberry Pi Zero 2 W](https://dietpi.com/#downloadinfo)** (ARMv8 / Aarch64).
 
+Flasher avec [balenaEtcher](https://etcher.balena.io/) ou Raspberry Pi Imager.
+
+Avant de démarrer, éditer sur la carte SD :
+
+**`dietpi.txt`** :
+```ini
+AUTO_SETUP_LOCALE=fr_FR.UTF-8
+AUTO_SETUP_KEYBOARD_LAYOUT=fr
+AUTO_SETUP_TIMEZONE=Europe/Paris
+AUTO_SETUP_NET_WIFI_ENABLED=1
+AUTO_SETUP_NET_WIFI_COUNTRY_CODE=FR
+AUTO_SETUP_AUTOMATED=1
+AUTO_SETUP_GLOBAL_PASSWORD=sdis
 ```
-Raspberry Pi OS (other) → Raspberry Pi OS Lite (64-bit)
+
+**`dietpi-wifi.txt`** :
+```ini
+aWIFI_SSID[0]='VotreSSID'
+aWIFI_KEY[0]='VotreMotDePasse'
 ```
-
-Configuration :
-
-| Paramètre | Valeur |
-|---|---|
-| Hostname | `ecran-1` (ou `ecran-2`, etc.) |
-| SSH | Activé |
-| Utilisateur | `sdis` + mot de passe |
-| Wi-Fi | SSID + mot de passe |
-| Locale | `Europe/Paris`, clavier `fr` |
 
 ### Étape 2 — Installer le client
 
 ```bash
-ssh sdis@ecran-1.local
+ssh root@<IP_DU_PI>
+# mot de passe par défaut DietPi : dietpi (ou celui configuré)
 ```
 
-Copier le script depuis le serveur ou le dépôt :
+Copier le script :
 
 ```bash
 curl -O http://<IP_SERVEUR>:8000/static/setup-client.sh
 # OU
-git clone <URL_DU_DEPOT> ~/affichage && cd ~/affichage
+apt install -y git && git clone <URL_DU_DEPOT> ~/affichage && cd ~/affichage
 ```
 
 Lancer l'installation :
@@ -104,7 +136,7 @@ Lancer l'installation :
 bash setup-client.sh
 ```
 
-Le script demande l'IP du serveur, installe Chromium et configure le démarrage automatique en kiosk.
+Le script installe surf (navigateur WebKit léger), active le mode **lite** (sans animations) et configure le kiosk automatique.
 
 ### Étape 3 — Redémarrer
 
@@ -145,6 +177,10 @@ docker compose logs -f
 docker compose restart
 docker compose up -d --build   # après mise à jour
 ```
+
+### Serveur Dokploy
+
+Les logs, redémarrages et redéploiements se font depuis l'interface Dokploy. Pour redéployer après un `git push`, activer le **auto-deploy** dans les paramètres du service.
 
 ### Client
 
