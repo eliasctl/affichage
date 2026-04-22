@@ -18,7 +18,5 @@ RUN mkdir -p static/uploads static/icons static/videos data
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=60s --timeout=3s --retries=2 \
-  CMD wget -q --spider http://localhost:8000/api/hash || exit 1
 
 CMD ["node", "app.js"]
