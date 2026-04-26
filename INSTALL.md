@@ -8,7 +8,7 @@ connexion admin.
 
 - Le token est **généré automatiquement** au premier démarrage et conservé
   dans la base de données. Il est visible dans **Admin → Paramètres**.
-- Les écrans (Pi en kiosque) ouvrent l'URL `https://serveur/?lite&token=<TOKEN>`.
+- Les écrans (Pi en kiosque) ouvrent l'URL `https://serveur/?token=<TOKEN>`.
   Le serveur valide le token puis pose un cookie longue durée
   (≈ 10 ans) : **l'écran ne se déconnecte plus jamais**.
 - Pour figer le token (déploiement reproductible / Docker), définir la
@@ -24,18 +24,18 @@ connexion admin.
 ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
 │  Pi Zero 2 W │       │  Pi Zero 2 W │       │  Pi Zero 2 W │
 │  (écran 1)   │──┐    │  (écran 2)   │──┐    │  (écran 3)   │──┐
-│  Chromium     │  │    │  Chromium     │  │    │  Chromium     │  │
+│  surf          │  │    │  surf          │  │    │  surf          │  │
 └──────────────┘  │    └──────────────┘  │    └──────────────┘  │
                   │                      │                      │
                   ▼                      ▼                      ▼
             ┌──────────────────────────────────────────────┐
             │           SERVEUR (PC / Pi 4 / NAS)         │
-            │   Flask + SQLite + admin + fichiers médias  │
+            │  Node.js + SQLite + admin + fichiers médias │
             └──────────────────────────────────────────────┘
 ```
 
-- **Serveur** : héberge l'application Flask, la base de données, l'interface admin et les fichiers médias.
-- **Clients** (Pi Zero 2 W) : affichent uniquement la page web en plein écran via Chromium. Aucun logiciel applicatif.
+- **Serveur** : héberge l'application Node.js, la base de données, l'interface admin et les fichiers médias.
+- **Clients** (Pi Zero 2 W) : affichent uniquement la page web en plein écran via surf. Aucun logiciel applicatif.
 
 ---
 
@@ -49,7 +49,7 @@ cd ~/affichage
 bash setup-server.sh
 ```
 
-Le script installe Python, Flask, crée le service systemd et démarre l'API sur le port 8000.
+Le script installe Node.js, crée le service systemd et démarre le serveur sur le port 8000.
 
 ### Option B — Docker
 
@@ -164,7 +164,7 @@ Le script demande :
 1. l'**adresse du serveur** (IP locale ou nom de domaine) ;
 2. le **token d'accès écran** — visible dans **Admin → Paramètres** sur le serveur.
 
-Il installe surf (navigateur WebKit léger), active le mode **lite** (sans animations) et configure le kiosk automatique. L'écran ouvre l'URL `…/?lite&token=<TOKEN>` ; le serveur pose un cookie longue durée pour qu'il **reste connecté à vie**.
+Il installe surf (navigateur WebKit léger) et configure le kiosk automatique. L'écran ouvre l'URL `…/?token=<TOKEN>` ; le serveur pose un cookie longue durée pour qu'il **reste connecté à vie**. Si le serveur redémarre ou plante, l'affichage continue de tourner avec le contenu déjà chargé et se met à jour automatiquement dès que le serveur redevient disponible.
 
 ### Étape 3 — Redémarrer
 
@@ -187,14 +187,14 @@ Chaque nouvel écran = un Pi Zero 2 W avec `setup-client.sh`. Tous pointent vers
 ### Serveur
 
 ```bash
-# Logs Flask
-sudo journalctl -u affichage-flask -f
+# Logs serveur
+sudo journalctl -u affichage -f
 
-# Redémarrer Flask
-sudo systemctl restart affichage-flask
+# Redémarrer le serveur
+sudo systemctl restart affichage
 
 # Mettre à jour
-cd ~/affichage && git pull && sudo systemctl restart affichage-flask
+cd ~/affichage && git pull && npm install && sudo systemctl restart affichage
 ```
 
 ### Serveur Docker

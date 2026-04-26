@@ -273,16 +273,6 @@
       height: 100vh; color: #bbb; font-size: 1.5rem;
     }
 
-    /* ── Mode lite (Pi Zero 2 W) : pas d'animations ───── */
-    body.lite *, body.lite *::before, body.lite *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-    body.lite .slide       { opacity: 0; }
-    body.lite .slide.active{ opacity: 1; }
-    body.lite .tw-cursor   { display: none; }
-    body.lite .s-images img{ box-shadow: none; }
-    body.lite .s-photo-caption { background: rgba(0,0,0,.6); }
   </style>
 </head>
 <body>
@@ -464,9 +454,6 @@
   <% } %>
 
   <script>
-    const LITE = new URLSearchParams(location.search).has('lite');
-    if (LITE) document.body.classList.add('lite');
-
     const slides   = document.querySelectorAll('.slide');
     const progress = document.getElementById('progress');
     let cur = 0, mainTimer, countdownInterval, twGen = 0;
@@ -562,7 +549,6 @@
       const p    = slide.querySelector('.s-text p');
       const tmpl = slide.querySelector('.s-text template');
       if (!p || !tmpl) return;
-      if (LITE) { p.innerHTML = tmpl.innerHTML; return; }
       typewriteHTML(p, tmpl.innerHTML, dur);
     }
 
@@ -624,7 +610,6 @@
     function startStats(slide) {
       slide.querySelectorAll('.stat-val').forEach(el => {
         const target = parseInt(el.dataset.target) || 0;
-        if (LITE) { el.textContent = target; return; }
         const dur = 1800, start = Date.now();
         function tick() {
           const p = Math.min((Date.now()-start)/dur, 1);
@@ -687,12 +672,8 @@
     function show(idx) {
       const old = cur;
       slides[old].classList.remove('active');
-      if (LITE) {
-        // Pas de transition prev→fade en mode lite
-      } else {
-        slides[old].classList.add('prev');
-        setTimeout(() => slides[old].classList.remove('prev'), 1000);
-      }
+      slides[old].classList.add('prev');
+      setTimeout(() => slides[old].classList.remove('prev'), 1000);
 
       cur = idx;
       const slide = slides[cur];
@@ -760,6 +741,14 @@
       setTimeout(rotateTicker, 8000);
     }
 
+    // ── Rechargement sécurisé (ne recharge que si le serveur répond) ──
+    async function safeReload() {
+      try {
+        const r = await fetch('/api/hash', { cache: 'no-store' });
+        if (r.ok) location.reload();
+      } catch(e) { /* serveur injoignable → on garde l'affichage actuel */ }
+    }
+
     // ── Polling des changements ─────────────────────────────
     let lastHash = null;
     async function checkForUpdates() {
@@ -767,7 +756,7 @@
         const r = await fetch('/api/hash');
         const d = await r.json();
         if (lastHash === null) { lastHash = d.hash; }
-        else if (d.hash !== lastHash) { location.reload(); }
+        else if (d.hash !== lastHash) { safeReload(); }
       } catch(e) {}
     }
     checkForUpdates();
@@ -780,7 +769,7 @@
       else {
         const away = hiddenAt ? Date.now() - hiddenAt : 0;
         hiddenAt = null;
-        if (away > 2 * 60 * 1000) location.reload();
+        if (away > 2 * 60 * 1000) safeReload();
         else restartCurrent();
       }
     });
@@ -789,13 +778,19 @@
 <% } else { %>
   <div class="empty">Aucune annonce active</div>
   <script>
+    async function safeReload() {
+      try {
+        const r = await fetch('/api/hash', { cache: 'no-store' });
+        if (r.ok) location.reload();
+      } catch(e) {}
+    }
     let lastHash = null;
     async function checkForUpdates() {
       try {
         const r = await fetch('/api/hash');
         const d = await r.json();
         if (lastHash === null) { lastHash = d.hash; }
-        else if (d.hash !== lastHash) { location.reload(); }
+        else if (d.hash !== lastHash) { safeReload(); }
       } catch(e) {}
     }
     checkForUpdates();
