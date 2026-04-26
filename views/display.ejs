@@ -464,6 +464,12 @@
   <% } %>
 
   <script>
+    // ── Service worker : permet à l'écran de continuer à afficher
+    //    le dernier contenu chargé même si le serveur tombe.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
     const LITE = new URLSearchParams(location.search).has('lite');
     if (LITE) document.body.classList.add('lite');
 
@@ -789,6 +795,9 @@
 <% } else { %>
   <div class="empty">Aucune annonce active</div>
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
     let lastHash = null;
     async function checkForUpdates() {
       try {

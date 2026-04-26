@@ -307,6 +307,16 @@ app.get('/api/hash', displayAuth, (req, res) => {
   res.json({ hash: db.getContentHash() });
 });
 
+// Service worker — servi à la racine pour pouvoir contrôler "/".
+// Pas d'authentification : c'est juste du JS public, et il a besoin d'être
+// chargeable même quand l'utilisateur n'est pas encore "authentifié" écran.
+app.get('/sw.js', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.set('Service-Worker-Allowed', '/');
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'sw.js'));
+});
+
 // ── Auth ────────────────────────────────────────────────────
 
 app.get('/login', (req, res) => res.render('login', { error: null }));

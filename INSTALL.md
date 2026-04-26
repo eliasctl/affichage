@@ -1,5 +1,23 @@
 # Installation — Architecture client/serveur
 
+## Résilience hors-ligne
+
+Chaque écran installe un **service worker** (`/sw.js`) au premier
+chargement réussi. Il met en cache la dernière page d'affichage et tous
+les médias (photos, vidéos, icônes, logo). Si le serveur tombe ou
+devient injoignable :
+
+- l'écran continue à afficher la **dernière version chargée** (slides,
+  photos, vidéo, ticker) ;
+- les requêtes JSON (`/api/hash`) échouent silencieusement, donc aucun
+  rechargement intempestif n'efface l'écran ;
+- dès que le serveur revient, le contenu se met à jour automatiquement
+  au prochain changement détecté.
+
+Aucune action n'est requise côté client : la mise en cache est
+automatique. Pour purger le cache (debug), supprimer les caches du
+navigateur ou changer la constante `CACHE` dans `sw.js`.
+
 ## Sécurité de l'affichage
 
 L'écran public (`/`) est protégé par un **token d'accès écran**. Sans ce
