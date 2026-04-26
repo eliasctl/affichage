@@ -3,6 +3,7 @@ const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const config = require('./config');
 const db = require('./database');
 
@@ -196,6 +197,55 @@ function loginRequired(req, res, next) {
   next();
 }
 
+// ── Auth écran (token longue durée — "lifetime") ────────────
+const DISPLAY_COOKIE = 'display_auth';
+const DISPLAY_COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60 * 1000; // ≈ 10 ans
+
+function getDisplayToken() {
+  if (config.DISPLAY_TOKEN) return config.DISPLAY_TOKEN;
+  let t = db.getSetting('display_token', '');
+  if (!t) {
+    t = crypto.randomBytes(24).toString('hex');
+    db.setSetting('display_token', t);
+  }
+  return t;
+}
+
+function regenDisplayToken() {
+  const t = crypto.randomBytes(24).toString('hex');
+  db.setSetting('display_token', t);
+  return t;
+}
+
+function parseCookies(req) {
+  const out = {};
+  (req.headers.cookie || '').split(';').forEach(p => {
+    const i = p.indexOf('=');
+    if (i > 0) out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim());
+  });
+  return out;
+}
+
+function displayAuth(req, res, next) {
+  // Un admin connecté a toujours accès à l'écran
+  if (req.session?.auth) return next();
+  const expected = getDisplayToken();
+  const provided = req.query.token || parseCookies(req)[DISPLAY_COOKIE];
+  if (provided && provided === expected) {
+    if (req.query.token === expected) {
+      // L'écran a fourni le bon token via l'URL → pose un cookie longue durée.
+      res.cookie(DISPLAY_COOKIE, expected, {
+        maxAge: DISPLAY_COOKIE_MAX_AGE,
+        httpOnly: true,
+        sameSite: 'lax',
+      });
+    }
+    return next();
+  }
+  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'unauthorized' });
+  return res.redirect('/login');
+}
+
 async function enrichSlide(s) {
   const meta = SLIDE_TYPES[s.type] || SLIDE_TYPES.intervention;
   s.color = meta.color;
@@ -229,9 +279,13 @@ function parseSlideExtra(body) {
 // ── Init DB ─────────────────────────────────────────────────
 db.initDb();
 
+// Génère et persiste le token d'accès écran dès le démarrage,
+// pour qu'il soit immédiatement visible dans Admin → Paramètres.
+getDisplayToken();
+
 // ── Display ─────────────────────────────────────────────────
 
-app.get('/', async (req, res) => {
+app.get('/', displayAuth, async (req, res) => {
   const slides  = await Promise.all(db.getSlides(true).map(enrichSlide));
   const icons   = db.getIcons();
   const ci_name = db.getSetting('ci_name', 'CIS Fontainebleau');
@@ -240,7 +294,7 @@ app.get('/', async (req, res) => {
   res.render('display', { slides, icons, ci_name, ticker, logo });
 });
 
-app.get('/api/display', async (req, res) => {
+app.get('/api/display', displayAuth, async (req, res) => {
   const slides  = await Promise.all(db.getSlides(true).map(enrichSlide));
   const icons   = db.getIcons();
   const ci_name = db.getSetting('ci_name', 'CIS Fontainebleau');
@@ -249,7 +303,7 @@ app.get('/api/display', async (req, res) => {
   res.json({ slides, icons, ci_name, ticker, logo });
 });
 
-app.get('/api/hash', (req, res) => {
+app.get('/api/hash', displayAuth, (req, res) => {
   res.json({ hash: db.getContentHash() });
 });
 
@@ -344,8 +398,15 @@ app.get('/admin/settings', loginRequired, (req, res) => {
     ci_name: db.getSetting('ci_name', 'CIS Fontainebleau'),
     logo: db.getSetting('logo', 'logo-sdis.png'),
     icons: db.getIcons(),
+    display_token: getDisplayToken(),
+    display_token_locked: !!config.DISPLAY_TOKEN,
     currentPath: '/admin/settings',
   });
+});
+
+app.post('/admin/regen-display-token', loginRequired, (req, res) => {
+  if (!config.DISPLAY_TOKEN) regenDisplayToken();
+  res.redirect('/admin/settings');
 });
 
 app.post('/admin/settings', loginRequired, settingsUpload, (req, res) => {

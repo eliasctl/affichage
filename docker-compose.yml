@@ -11,6 +11,9 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # Optionnel : si défini, fige le token d'accès écran. Sinon, généré
+      # automatiquement au premier démarrage et persisté en base.
+      - DISPLAY_TOKEN=${DISPLAY_TOKEN:-}
     restart: unless-stopped
 
 volumes:

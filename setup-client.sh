@@ -42,6 +42,18 @@ fi
 echo "→ URL serveur : $SERVER_URL"
 echo ""
 
+# ── Token d'accès écran ──────────────────────────────────
+echo "Token d'accès écran (visible dans l'admin > Paramètres) :"
+read -rp "Token : " DISPLAY_TOKEN
+if [ -z "$DISPLAY_TOKEN" ]; then
+  echo "✗ Token requis pour autoriser l'écran." >&2
+  exit 1
+fi
+
+DISPLAY_URL="${SERVER_URL}/?lite&token=${DISPLAY_TOKEN}"
+echo "→ URL écran : $DISPLAY_URL"
+echo ""
+
 # ── Mise à jour système ───────────────────────────────────
 echo "→ Mise à jour du système..."
 apt-get update -q && apt-get full-upgrade -y -q
@@ -74,8 +86,8 @@ mkdir -p "$KIOSK_DIR"
 
 cat > "$KIOSK_DIR/kiosk.sh" << EOF
 #!/usr/bin/env bash
-# Attendre que le serveur soit joignable
-while ! curl -s -o /dev/null -m 3 ${SERVER_URL}/api/hash; do sleep 3; done
+# Attendre que le serveur soit joignable (ping non authentifié)
+while ! curl -s -o /dev/null -m 3 ${SERVER_URL}/login; do sleep 3; done
 
 # Désactiver veille écran
 xset s off
@@ -85,8 +97,9 @@ xset s noblank
 # Cacher le curseur
 unclutter-xfixes --hide-on-touch &
 
-# Lancer surf en plein écran — mode lite (sans animations)
-surf -F "${SERVER_URL}?lite" &
+# Lancer surf en plein écran — mode lite + token d'accès écran
+# Le serveur valide le token et pose un cookie longue durée (10 ans).
+surf -F "${DISPLAY_URL}" &
 SURF_PID=\$!
 
 # Forcer le plein écran
@@ -105,6 +118,7 @@ chown -R "$REAL_USER:$REAL_USER" "$KIOSK_DIR"
 
 # ── Sauvegarder l'URL serveur (pour maintenance) ─────────
 echo "$SERVER_URL" > "$KIOSK_DIR/server_url"
+echo "$DISPLAY_URL" > "$KIOSK_DIR/display_url"
 
 # ── Openbox lance le kiosk au démarrage de X ──────────────
 sudo -u "$REAL_USER" mkdir -p "$REAL_HOME/.config/openbox"
@@ -152,6 +166,7 @@ echo "│                                             │"
 echo "│   Navigateur : surf (WebKit léger)          │"
 echo "│   Mode       : lite (sans animations)       │"
 echo "│   Serveur    : $SERVER_URL                  │"
+echo "│   Token écran configuré ✓                   │"
 echo "│                                             │"
 echo "│   → sudo reboot                             │"
 echo "└─────────────────────────────────────────────┘"
