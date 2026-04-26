@@ -13,12 +13,12 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
-    <% if (ticker) { %>body { height: calc(100vh - 108px); }<% } %>
+    <% if (ticker && ticker.length) { %>body { height: calc(100vh - 108px); }<% } %>
 
     /* ── Slide ─────────────────────────────────────────── */
     .slide {
       position: absolute; top: 0; left: 0; right: 0;
-      bottom: <% if (ticker) { %>108px<% } else { %>0<% } %>;
+      bottom: <% if (ticker && ticker.length) { %>108px<% } else { %>0<% } %>;
       background: #fff;
       display: flex; flex-direction: column;
       opacity: 0; transition: opacity .9s ease;
@@ -82,7 +82,7 @@
 
     /* ── Barre de progression ───────────────────────────── */
     #progress {
-      position: fixed; bottom: <% if (ticker) { %>108px<% } else { %>0<% } %>;
+      position: fixed; bottom: <% if (ticker && ticker.length) { %>108px<% } else { %>0<% } %>;
       left: 0; height: 4px; width: 0%; z-index: 10;
     }
 
@@ -300,7 +300,7 @@
     <div class="s-body">
 
       <%# Icônes spécialités %>
-      <% if (icons) { %>
+      <% if (icons && icons.length) { %>
       <div class="s-icons">
         <% icons.forEach((icon, _i) => { %>
         <div class="icon-item">
@@ -446,7 +446,7 @@
   <div id="progress" style="background: var(--slide-color, #C0392B)"></div>
 
   <%# ── Ticker ── %>
-  <% if (ticker) { %>
+  <% if (ticker && ticker.length) { %>
   <div id="ticker">
     <div class="ticker-tag">⚡ Infos</div>
     <div class="ticker-msg" id="ticker-msg"><%= ticker.length ? ticker[0].text : '' %></div>

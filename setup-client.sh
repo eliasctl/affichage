@@ -33,6 +33,9 @@ echo "  - Nom de domaine  : affichage.exemple.fr  (→ https://affichage.exemple
 echo ""
 read -rp "IP ou domaine : " SERVER_HOST
 
+# Nettoyer un éventuel http:// ou https:// saisi par l'utilisateur
+SERVER_HOST=$(echo "$SERVER_HOST" | sed -E 's|^https?://||' | sed 's|/$||')
+
 # Détection automatique : domaine → HTTPS sans port / IP → HTTP:8000
 if echo "$SERVER_HOST" | grep -qP '^[0-9.]+$'; then
   SERVER_URL="http://${SERVER_HOST}:8000"
