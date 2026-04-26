@@ -1,5 +1,23 @@
 # Installation — Architecture client/serveur
 
+## Sécurité de l'affichage
+
+L'écran public (`/`) est protégé par un **token d'accès écran**. Sans ce
+token, toute personne tombant sur l'URL est redirigée vers la page de
+connexion admin.
+
+- Le token est **généré automatiquement** au premier démarrage et conservé
+  dans la base de données. Il est visible dans **Admin → Paramètres**.
+- Les écrans (Pi en kiosque) ouvrent l'URL `https://serveur/?lite&token=<TOKEN>`.
+  Le serveur valide le token puis pose un cookie longue durée
+  (≈ 10 ans) : **l'écran ne se déconnecte plus jamais**.
+- Pour figer le token (déploiement reproductible / Docker), définir la
+  variable d'environnement `DISPLAY_TOKEN`. Sinon, laisser vide pour
+  laisser le serveur le générer.
+- Régénérer le token depuis l'admin déconnecte tous les écrans : il faut
+  alors les reconfigurer (relancer `setup-client.sh` ou éditer
+  `~/kiosk/kiosk.sh`).
+
 ## Principe
 
 ```
@@ -43,6 +61,9 @@ cd ~/affichage
 cat > .env << 'EOF'
 SECRET_KEY=CHANGEZ_MOI_48_CHARS_ALEATOIRES
 ADMIN_PASSWORD=votre_mot_de_passe
+# Optionnel — laisser vide pour laisser le serveur générer un token et l'afficher
+# dans Admin > Paramètres :
+DISPLAY_TOKEN=
 EOF
 
 docker compose up -d
@@ -58,6 +79,8 @@ docker compose up -d
    ```
    SECRET_KEY=une_cle_secrete_longue_et_aleatoire
    ADMIN_PASSWORD=votre_mot_de_passe_admin
+   # Optionnel (sinon généré automatiquement) :
+   # DISPLAY_TOKEN=token_long_et_aleatoire_pour_les_ecrans
    ```
 
 4. Dans l'onglet **Domains**, ajouter le domaine souhaité :
@@ -136,7 +159,12 @@ Lancer l'installation :
 bash setup-client.sh
 ```
 
-Le script installe surf (navigateur WebKit léger), active le mode **lite** (sans animations) et configure le kiosk automatique.
+Le script demande :
+
+1. l'**adresse du serveur** (IP locale ou nom de domaine) ;
+2. le **token d'accès écran** — visible dans **Admin → Paramètres** sur le serveur.
+
+Il installe surf (navigateur WebKit léger), active le mode **lite** (sans animations) et configure le kiosk automatique. L'écran ouvre l'URL `…/?lite&token=<TOKEN>` ; le serveur pose un cookie longue durée pour qu'il **reste connecté à vie**.
 
 ### Étape 3 — Redémarrer
 
@@ -185,13 +213,17 @@ Les logs, redémarrages et redéploiements se font depuis l'interface Dokploy. P
 ### Client
 
 ```bash
-# Voir l'URL serveur configurée
+# Voir l'URL serveur / l'URL kiosque (avec token) configurées
 cat ~/kiosk/server_url
+cat ~/kiosk/display_url
 
-# Changer le serveur
-nano ~/kiosk/kiosk.sh    # modifier l'URL
+# Changer le serveur ou le token
+nano ~/kiosk/kiosk.sh    # modifier l'URL surf -F "..."
 sudo reboot
 ```
+
+> Si le token a été régénéré côté admin, mettre à jour la valeur après
+> `surf -F` dans `~/kiosk/kiosk.sh`, puis `sudo reboot`.
 
 ---
 

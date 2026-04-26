@@ -1,5 +1,64 @@
 <%- include('_header', { currentPath: '/admin/settings' }) %>
 
+<%# ── Token d'accès écran ── %>
+<div class="card">
+  <div class="card-title">
+    <span>Accès écrans (token)</span>
+    <span style="font-size:.78rem;color:#bbb;font-weight:400">
+      Empêche l'accès public à l'affichage
+    </span>
+  </div>
+  <p style="font-size:.85rem;color:#666;margin-bottom:.9rem;line-height:1.5">
+    Les écrans (Pi en kiosque) ouvrent une URL contenant ce token.
+    Une fois le token validé, un cookie longue durée (≈ 10 ans) est posé : <strong>l'écran ne se déconnecte plus jamais</strong>.
+    Régénérer le token déconnecte tous les écrans : il faudra les reconfigurer.
+  </p>
+
+  <label>URL à ouvrir sur un nouvel écran</label>
+  <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+    <input type="text" id="display-url" readonly
+           value="<%= '/?lite&token=' + display_token %>"
+           style="flex:1;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.82rem;background:#fafafa">
+    <button type="button" class="btn btn-gray" id="copy-url">📋 Copier</button>
+  </div>
+
+  <label>Token brut</label>
+  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+    <code id="display-token"
+          style="flex:1;min-width:240px;padding:.55rem .8rem;background:#fafafa;border:1.5px solid #eee;border-radius:6px;font-size:.82rem;word-break:break-all">
+      <%= display_token %>
+    </code>
+    <% if (display_token_locked) { %>
+      <span class="badge badge-off" title="Le token est défini par la variable d'environnement DISPLAY_TOKEN">
+        🔒 Verrouillé (env)
+      </span>
+    <% } else { %>
+      <form method="post" action="/admin/regen-display-token" style="margin:0"
+            onsubmit="return confirm('Régénérer le token va déconnecter TOUS les écrans déjà configurés. Continuer ?')">
+        <button type="submit" class="btn btn-danger">🔄 Régénérer</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  document.getElementById('copy-url').addEventListener('click', () => {
+    const inp = document.getElementById('display-url');
+    const fullUrl = location.origin + inp.value;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      const b = document.getElementById('copy-url');
+      const old = b.textContent;
+      b.textContent = '✓ Copié';
+      setTimeout(() => (b.textContent = old), 1500);
+    });
+  });
+  // Affiche l'URL complète dans le champ pour clarté
+  (() => {
+    const inp = document.getElementById('display-url');
+    inp.value = location.origin + inp.value;
+  })();
+</script>
+
 <%# ── Nom du CI ── %>
 <div class="card">
   <div class="card-title">Informations du centre</div>
